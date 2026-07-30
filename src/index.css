@@ -2,62 +2,59 @@
 
 @layer base {
   :root {
-    /* Stripe/Vercel/Linear/Clerk Specified Enterprise Design Tokens */
-    --background: #F8FAFC;
-    --foreground: #0F172A;
+    --background: #F8F5EE;         /* Warm Light Cream */
+    --foreground: #18281F;         /* Deep Forest Espresso */
+    --card: #FFFFFF;               /* Pure White */
+    --card-foreground: #18281F;
+    --card-hover-border: #C4A066;
+
+    --muted: #EFE8D8;
+    --muted-foreground: #6B7C70;   /* Muted Sage Taupe */
+
+    --border: #E4DCC9;             /* Soft Warm Sand Border */
+    --border-subtle: #EFE8D8;
     
-    --card: #FFFFFF;
-    --card-foreground: #0F172A;
-    --card-hover-border: #CBD5E1;
+    --secondary: #EFE8D8;          /* Light Warm Sand Surface */
+    --secondary-foreground: #18281F;
 
-    --border: #E2E8F0;
-    --border-subtle: #F1F5F9;
-    
-    --muted: #F1F5F9;
-    --muted-foreground: #64748B;
+    --ink: #18281F;                /* Deep Forest Text */
+    --ink-foreground: #F8F5EE;
 
-    --secondary: #10B981;
-    --secondary-hover: #059669;
-    --secondary-foreground: #FFFFFF;
+    --gold: #C4A066;               /* Warm Tan Gold Accent */
+    --accent: #C4A066;             /* Warm Tan Gold Accent */
 
-    --ink: #0F172A;
-    --ink-foreground: #FFFFFF;
+    --primary: #18281F;            /* Deep Dark Forest Green */
+    --primary-card: #243A2D;       /* Inner Dark Bento Card */
+    --primary-foreground: #F8F5EE; /* Cream Text */
 
-    --gold: #F59E0B;
+    --accent-indigo: #18281F;
+    --accent-cyan: #2C5282;
+    --destructive: #B91C1C;
 
-    --primary: #4F46E5;
-    --primary-hover: #4338CA;
-    --primary-foreground: #FFFFFF;
-
-    --accent-indigo: #4F46E5;
-    --accent-cyan: #06B6D4;
-    --destructive: #EF4444;
-
-    --sidebar-background: #0F172A;
-    --sidebar-hover: #1E293B;
+    --sidebar-background: #18281F;
+    --sidebar-hover: #243A2D;
     --sidebar-foreground: #94A3B8;
 
     --glass-bg: #FFFFFF;
-    --glass-border: #E2E8F0;
+    --glass-border: #E4DCC9;
   }
 
-  /* Light Mode (Standard Enterprise Light Theme) */
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 14px;
     line-height: 1.5;
   }
 }
 
-/* Font Family Mappings */
+/* Official Typography Font Mappings */
 .font-sans, .font-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 
 .font-serif, .font-heading {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 .font-mono {
@@ -65,54 +62,49 @@
 }
 
 .font-mono-meta {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-/* Typography Hierarchy Standards */
+/* Typography Hierarchy */
 .page-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 32px;
   font-weight: 700;
   line-height: 1.25;
-  color: #0F172A;
+  color: #18281F;
 }
 
 .section-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 24px;
   font-weight: 700;
   line-height: 1.3;
-  color: #0F172A;
+  color: #18281F;
 }
 
 .card-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
-  color: #0F172A;
+  color: #18281F;
 }
 
 .text-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px;
-  font-weight: 400;
-  color: #0F172A;
+  font-weight: 500;
+  color: #18281F;
 }
 
 .text-caption {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 500;
-  color: #64748B;
+  color: #6B7C70;
 }
-
-/* 8-Point Spacing Standards */
-.p-space-24 { padding: 24px; }
-.gap-space-16 { gap: 16px; }
-.space-section { margin-bottom: 32px; }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
@@ -123,9 +115,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #E4DCC9;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #C4A066;
 }

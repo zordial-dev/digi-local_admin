@@ -12,7 +12,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative w-full">
         {leftIcon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B] pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7C70] pointer-events-none">
             {leftIcon}
           </div>
         )}
@@ -21,22 +21,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           disabled={disabled}
           className={cn(
-            'flex h-11 w-full rounded-[10px] border border-[#E2E8F0] bg-white px-3.5 py-2 text-[14px] text-[#0F172A] placeholder:text-[#94A3B8] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50 font-sans shadow-2xs',
+            'flex h-11 w-full rounded-[10px] border border-[#E4DCC9] bg-white px-3.5 py-2 text-[14px] text-[#18281F] placeholder:text-[#6B7C70]/70 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#18281F] focus:border-[#18281F] disabled:cursor-not-allowed disabled:opacity-50 font-sans shadow-2xs',
             leftIcon && 'pl-10',
             rightIcon && 'pr-10',
-            error && 'border-[#EF4444] focus:ring-[#EF4444] focus:border-[#EF4444]',
+            error && 'border-[#B91C1C] focus:ring-[#B91C1C] focus:border-[#B91C1C]',
             className
           )}
           {...props}
         />
 
         {rightIcon && (
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#64748B]">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7C70]">
             {rightIcon}
           </div>
         )}
 
-        {error && <span className="font-sans text-[12px] text-[#EF4444] font-medium mt-1 block">{error}</span>}
+        {error && <span className="font-sans text-[12px] text-[#B91C1C] font-semibold mt-1 block">{error}</span>}
       </div>
     );
   }

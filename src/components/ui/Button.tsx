@@ -27,31 +27,31 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-[10px] font-medium font-body transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] cursor-pointer select-none';
+      'inline-flex items-center justify-center rounded-[10px] font-semibold font-sans transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C4A066] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] cursor-pointer select-none';
 
     const variantStyles = {
       default:
-        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+        'bg-[#18281F] hover:bg-[#243A2D] text-[#F8F5EE] shadow-xs border border-[#18281F]',
       indigo:
-        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+        'bg-[#18281F] hover:bg-[#243A2D] text-[#F8F5EE] shadow-xs border border-[#18281F]',
       mint:
-        'bg-[#10B981] hover:bg-[#059669] text-white font-semibold shadow-xs',
+        'bg-[#1E3A29] hover:bg-[#18281F] text-[#F8F5EE] shadow-xs border border-[#1E3A29]',
       gradient:
-        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+        'bg-[#18281F] hover:bg-[#243A2D] text-[#F8F5EE] shadow-xs border border-[#18281F]',
       gold:
-        'bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold shadow-xs',
+        'bg-[#C4A066] hover:bg-[#B38F55] text-[#18281F] font-bold shadow-xs border border-[#C4A066]',
       ink:
-        'bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold shadow-xs',
+        'bg-[#18281F] hover:bg-[#243A2D] text-[#F8F5EE] shadow-xs',
       secondary:
-        'bg-white hover:bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0] shadow-xs font-medium',
+        'bg-[#EFE8D8] hover:bg-[#E4DCC9] text-[#18281F] border border-[#E4DCC9] shadow-xs font-semibold',
       outline:
-        'bg-white hover:bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0] shadow-xs font-medium',
+        'bg-white hover:bg-[#EFE8D8] text-[#18281F] border border-[#E4DCC9] shadow-xs font-semibold',
       ghost:
-        'hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A]',
+        'hover:bg-[#EFE8D8] text-[#6B7C70] hover:text-[#18281F]',
       destructive:
-        'bg-[#EF4444] hover:bg-[#DC2626] text-white font-semibold shadow-xs',
+        'bg-[#B91C1C] hover:bg-[#991B1B] text-white font-semibold shadow-xs border border-[#B91C1C]',
       success:
-        'bg-[#10B981] hover:bg-[#059669] text-white font-semibold shadow-xs',
+        'bg-[#1E3A29] hover:bg-[#18281F] text-white font-semibold shadow-xs border border-[#1E3A29]',
     };
 
     const sizeStyles = {

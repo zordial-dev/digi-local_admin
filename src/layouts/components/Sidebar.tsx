@@ -66,30 +66,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-slate-800 bg-[#0F172A] text-[#94A3B8] transition-all duration-200 z-30 select-none shadow-sm',
+        'relative flex flex-col border-r border-[#243A2D] bg-[#18281F] text-[#F8F5EE] transition-all duration-200 z-30 select-none shadow-sm',
         isCollapsed ? 'w-18' : 'w-64'
       )}
     >
       {/* Brand Logo Header */}
-      <div className="flex h-16 items-center justify-between px-5 border-b border-slate-800">
+      <div className="flex h-16 items-center justify-between px-5 border-b border-[#243A2D]">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-[10px] bg-[#4F46E5] text-white flex items-center justify-center font-serif font-bold text-base shadow-sm">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="h-9 w-9 rounded-[10px] bg-[#C4A066] text-[#18281F] flex items-center justify-center font-serif font-bold text-base shadow-xs">
+              <Sparkles className="h-4 w-4 text-[#18281F]" />
             </div>
             <div className="flex flex-col">
-              <span className="font-serif font-bold text-[18px] text-white tracking-tight leading-none">
+              <span className="font-serif font-bold text-[18px] text-[#F8F5EE] tracking-tight leading-none">
                 DigiLocal
               </span>
-              <span className="font-sans text-[10px] uppercase tracking-widest text-slate-400 font-medium mt-1">
-                Enterprise Admin
+              <span className="font-sans text-[10px] uppercase tracking-widest text-[#C4A066] font-semibold mt-1">
+                HYPERLOCAL ADMIN
               </span>
             </div>
           </div>
         )}
 
         {isCollapsed && (
-          <div className="mx-auto h-9 w-9 rounded-[10px] bg-[#4F46E5] text-white flex items-center justify-center font-serif font-bold text-base shadow-sm">
+          <div className="mx-auto h-9 w-9 rounded-[10px] bg-[#C4A066] text-[#18281F] flex items-center justify-center font-serif font-bold text-base shadow-xs">
             DL
           </div>
         )}
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
         {navigationGroups.map((group, groupIdx) => (
           <div key={groupIdx} className="space-y-1">
             {!isCollapsed && (
-              <h5 className="px-3 font-sans text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              <h5 className="px-3 font-sans text-[11px] font-semibold text-[#6B7C70] uppercase tracking-wider mb-2">
                 {group.title}
               </h5>
             )}
@@ -111,10 +111,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                 end={item.path === '/dashboard'}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium font-sans transition-all duration-150',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-semibold font-sans transition-all duration-150',
                     isActive
-                      ? 'bg-[#4F46E5] text-white font-semibold shadow-xs'
-                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white',
+                      ? 'bg-[#C4A066] text-[#18281F] font-bold shadow-xs'
+                      : 'text-[#F8F5EE]/80 hover:bg-[#243A2D] hover:text-[#F8F5EE]',
                     isCollapsed && 'justify-center px-0'
                   )
                 }
@@ -122,12 +122,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
               >
                 {({ isActive }) => (
                   <>
-                    <span className={cn('shrink-0', isActive ? 'text-white' : 'text-[#94A3B8]')}>
+                    <span className={cn('shrink-0', isActive ? 'text-[#18281F]' : 'text-[#C4A066]')}>
                       {item.icon}
                     </span>
                     {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
                     {!isCollapsed && item.badge && (
-                      <span className="font-sans text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-medium">
+                      <span className="font-sans text-[10px] bg-[#243A2D] text-[#C4A066] border border-[#C4A066]/30 px-2 py-0.5 rounded-full font-semibold">
                         {item.badge}
                       </span>
                     )}
@@ -140,13 +140,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       </div>
 
       {/* Collapse Toggle Footer */}
-      <div className="p-3 border-t border-slate-800 flex justify-end">
+      <div className="p-3 border-t border-[#243A2D] flex justify-end">
         <button
           onClick={onToggleCollapse}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-slate-800 bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#1E293B] transition cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#243A2D] bg-[#18281F] text-[#F8F5EE] hover:bg-[#243A2D] transition cursor-pointer"
           aria-label="Toggle sidebar"
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {isCollapsed ? <ChevronRight className="h-4 w-4 text-[#C4A066]" /> : <ChevronLeft className="h-4 w-4 text-[#C4A066]" />}
         </button>
       </div>
     </aside>

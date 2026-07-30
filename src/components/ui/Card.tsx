@@ -4,15 +4,17 @@ import { cn } from '../../utils/cn';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   interactive?: boolean;
+  dark?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className, interactive = false, ...props }) => {
+export const Card: React.FC<CardProps> = ({ children, className, interactive = false, dark = false, ...props }) => {
   return (
     <div
       className={cn(
-        'rounded-[12px] border border-[#E2E8F0] bg-white p-6 text-[#0F172A] shadow-xs transition-all duration-150 relative overflow-hidden',
+        'rounded-[12px] border border-[#E4DCC9] bg-white p-6 text-[#18281F] shadow-xs transition-all duration-150 relative overflow-hidden',
+        dark && 'bg-[#243A2D] text-[#F8F5EE] border-[#243A2D]',
         interactive &&
-          'hover:border-[#CBD5E1] hover:shadow-sm cursor-pointer',
+          'hover:border-[#C4A066] hover:shadow-sm cursor-pointer',
         className
       )}
       {...props}
@@ -40,7 +42,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   ...props
 }) => {
   return (
-    <h3 className={cn('font-serif font-semibold text-[18px] tracking-tight text-[#0F172A]', className)} {...props}>
+    <h3 className={cn('font-serif font-bold text-[18px] tracking-tight text-[#18281F]', className)} {...props}>
       {children}
     </h3>
   );
@@ -52,7 +54,7 @@ export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement
   ...props
 }) => {
   return (
-    <p className={cn('font-sans text-[12px] text-[#64748B] font-medium', className)} {...props}>
+    <p className={cn('font-sans text-[12px] text-[#6B7C70] font-semibold tracking-wide', className)} {...props}>
       {children}
     </p>
   );
@@ -76,7 +78,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   ...props
 }) => {
   return (
-    <div className={cn('flex items-center pt-4 border-t border-[#E2E8F0] mt-4', className)} {...props}>
+    <div className={cn('flex items-center pt-4 border-t border-[#E4DCC9] mt-4', className)} {...props}>
       {children}
     </div>
   );
