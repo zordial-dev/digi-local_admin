@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -65,41 +66,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-[var(--border)] bg-[var(--sidebar-background)] text-[var(--sidebar-foreground)] transition-all duration-300 z-30 select-none',
-        isCollapsed ? 'w-16' : 'w-64'
+        'relative flex flex-col border-r border-slate-800 bg-[#0F172A] text-[#94A3B8] transition-all duration-200 z-30 select-none shadow-sm',
+        isCollapsed ? 'w-18' : 'w-64'
       )}
     >
-      {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between px-5 border-b border-[var(--border)]">
+      {/* Brand Logo Header */}
+      <div className="flex h-16 items-center justify-between px-5 border-b border-slate-800">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] border border-[var(--gold)] flex items-center justify-center font-serif font-bold text-base">
-              DL
+            <div className="h-9 w-9 rounded-[10px] bg-[#4F46E5] text-white flex items-center justify-center font-serif font-bold text-base shadow-sm">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="font-serif font-bold text-lg text-[var(--foreground)] tracking-tight">
+              <span className="font-serif font-bold text-[18px] text-white tracking-tight leading-none">
                 DigiLocal
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--gold)] font-semibold">
-                Admin Panel
+              <span className="font-sans text-[10px] uppercase tracking-widest text-slate-400 font-medium mt-1">
+                Enterprise Admin
               </span>
             </div>
           </div>
         )}
 
         {isCollapsed && (
-          <div className="mx-auto h-8 w-8 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] border border-[var(--gold)] flex items-center justify-center font-serif font-bold text-base">
+          <div className="mx-auto h-9 w-9 rounded-[10px] bg-[#4F46E5] text-white flex items-center justify-center font-serif font-bold text-base shadow-sm">
             DL
           </div>
         )}
       </div>
 
-      {/* Navigation Items */}
-      <div className="flex-1 overflow-y-auto px-3 py-6 space-y-6">
+      {/* Navigation Groups */}
+      <div className="flex-1 overflow-y-auto px-3 py-6 space-y-6 scrollbar-none">
         {navigationGroups.map((group, groupIdx) => (
-          <div key={groupIdx} className="space-y-1.5">
+          <div key={groupIdx} className="space-y-1">
             {!isCollapsed && (
-              <h5 className="px-3 font-mono-meta text-[10px] font-semibold text-[var(--muted-foreground)] mb-2">
+              <h5 className="px-3 font-sans text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
                 {group.title}
               </h5>
             )}
@@ -110,21 +111,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                 end={item.path === '/dashboard'}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium font-body transition-all duration-150',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[14px] font-medium font-sans transition-all duration-150',
                     isActive
-                      ? 'bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold border-l-2 border-[var(--gold)]'
-                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--gold)]',
+                      ? 'bg-[#4F46E5] text-white font-semibold shadow-xs'
+                      : 'text-[#94A3B8] hover:bg-[#1E293B] hover:text-white',
                     isCollapsed && 'justify-center px-0'
                   )
                 }
                 title={isCollapsed ? item.label : undefined}
               >
-                <span className="shrink-0">{item.icon}</span>
-                {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
-                {!isCollapsed && item.badge && (
-                  <span className="font-mono text-[9px] bg-[var(--gold)]/20 text-[var(--gold)] border border-[var(--gold)]/40 px-1.5 py-0.5 rounded font-semibold">
-                    {item.badge}
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    <span className={cn('shrink-0', isActive ? 'text-white' : 'text-[#94A3B8]')}>
+                      {item.icon}
+                    </span>
+                    {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
+                    {!isCollapsed && item.badge && (
+                      <span className="font-sans text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-medium">
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
                 )}
               </NavLink>
             ))}
@@ -133,10 +140,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       </div>
 
       {/* Collapse Toggle Footer */}
-      <div className="p-3 border-t border-[var(--border)] flex justify-end">
+      <div className="p-3 border-t border-slate-800 flex justify-end">
         <button
           onClick={onToggleCollapse}
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--gold)] hover:border-[var(--gold)] transition cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-slate-800 bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#1E293B] transition cursor-pointer"
           aria-label="Toggle sidebar"
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}

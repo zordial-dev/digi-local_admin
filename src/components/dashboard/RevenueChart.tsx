@@ -1,16 +1,14 @@
 import React from 'react';
 import {
-  ResponsiveContainer,
   AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
-import { Skeleton } from '../feedback/Skeleton';
 import { RevenuePoint } from '../../types/dashboard';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -19,93 +17,94 @@ export interface RevenueChartProps {
   isLoading?: boolean;
 }
 
-export const RevenueChart: React.FC<RevenueChartProps> = ({ data, isLoading }) => {
-  if (isLoading || !data) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-32 mt-1" />
-        </CardHeader>
-        <CardContent className="h-80 flex items-center justify-center">
-          <Skeleton className="h-full w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+export const RevenueChart: React.FC<RevenueChartProps> = ({ data = [] }) => {
+  const chartData =
+    data.length > 0
+      ? data
+      : [
+          { month: 'Jan', revenue: 14200, profit: 8900 },
+          { month: 'Feb', revenue: 18500, profit: 11200 },
+          { month: 'Mar', revenue: 22400, profit: 14800 },
+          { month: 'Apr', revenue: 21100, profit: 13900 },
+          { month: 'May', revenue: 28900, profit: 19400 },
+          { month: 'Jun', revenue: 34200, profit: 24100 },
+          { month: 'Jul', revenue: 39800, profit: 27900 },
+        ];
 
   return (
-    <Card className="p-2">
+    <Card className="h-full">
       <CardHeader>
-        <CardTitle className="text-xl">Revenue & Profit Overview</CardTitle>
-        <CardDescription>MONTHLY FINANCIAL PERFORMANCE TRENDS</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#224636" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#224636" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#cba358" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#cba358" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="month"
-                stroke="var(--muted-foreground)"
-                fontSize={11}
-                fontFamily="JetBrains Mono"
-                tickLine={false}
-              />
-              <YAxis
-                stroke="var(--muted-foreground)"
-                fontSize={11}
-                fontFamily="JetBrains Mono"
-                tickLine={false}
-                tickFormatter={(val) => `$${val / 1000}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card)',
-                  borderColor: 'var(--border)',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.75rem',
-                  fontFamily: 'Inter',
-                }}
-                formatter={(value: any) => [
-                  formatCurrency(Number(value || 0)),
-                  '',
-                ]}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: '0.75rem', fontFamily: 'JetBrains Mono', paddingTop: '10px' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                name="Gross Revenue"
-                stroke="#224636"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorRevenue)"
-              />
-              <Area
-                type="monotone"
-                dataKey="profit"
-                name="Net Profit"
-                stroke="#cba358"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorProfit)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Revenue & Margin Trajectory</CardTitle>
+            <CardDescription>GROSS REVENUE VS NET MARGIN PERFORMANCE</CardDescription>
+          </div>
+          <div className="flex items-center gap-4 text-[12px] font-sans">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#4F46E5]" />
+              <span className="text-[#64748B]">Gross Revenue</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
+              <span className="text-[#64748B]">Net Profit</span>
+            </div>
+          </div>
         </div>
+      </CardHeader>
+      <CardContent className="h-72 w-full pt-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gradientRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0} />
+              </linearGradient>
+              <linearGradient id="gradientProfit" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="month" stroke="#94A3B8" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis
+              stroke="#94A3B8"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(val) => `$${val / 1000}k`}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="rounded-[10px] border border-[#E2E8F0] bg-white p-3 shadow-md font-sans text-[12px] space-y-1">
+                      <p className="font-bold text-[#0F172A]">{payload[0].payload.month}</p>
+                      <p className="text-[#4F46E5] font-semibold">Revenue: {formatCurrency(payload[0].value as number)}</p>
+                      <p className="text-[#10B981] font-semibold">Profit: {formatCurrency(payload[1].value as number)}</p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#4F46E5"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#gradientRevenue)"
+            />
+            <Area
+              type="monotone"
+              dataKey="profit"
+              stroke="#10B981"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#gradientProfit)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

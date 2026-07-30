@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'ink' | 'secondary' | 'outline' | 'destructive' | 'ghost' | 'link';
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'gold' | 'gradient' | 'ink' | 'mint' | 'indigo' | 'success';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -21,50 +21,63 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       rightIcon,
       children,
       disabled,
+      type = 'button',
       ...props
     },
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium font-body transition-all duration-200 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--gold)] disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] cursor-pointer select-none';
+      'inline-flex items-center justify-center rounded-[10px] font-medium font-body transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] cursor-pointer select-none';
 
-    const variants = {
+    const variantStyles = {
       default:
-        'bg-[var(--primary)] text-[var(--primary-foreground)] hover:brightness-110 shadow-xs border border-[var(--primary)] hover:border-[var(--gold)]',
+        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+      indigo:
+        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+      mint:
+        'bg-[#10B981] hover:bg-[#059669] text-white font-semibold shadow-xs',
+      gradient:
+        'bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-xs font-semibold',
+      gold:
+        'bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold shadow-xs',
       ink:
-        'bg-[var(--ink)] text-[var(--ink-foreground)] hover:brightness-125 shadow-xs border border-[var(--ink)] hover:border-[var(--gold)]',
+        'bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold shadow-xs',
       secondary:
-        'bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)] border border-transparent',
+        'bg-white hover:bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0] shadow-xs font-medium',
       outline:
-        'border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:border-[var(--gold)] hover:text-[var(--gold)]',
-      destructive:
-        'bg-red-800 text-white hover:bg-red-900 border border-red-800 shadow-xs',
+        'bg-white hover:bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0] shadow-xs font-medium',
       ghost:
-        'bg-transparent text-[var(--foreground)] hover:text-[var(--gold)] hover:bg-[var(--secondary)]',
-      link: 'text-[var(--primary)] underline-offset-4 hover:underline p-0 h-auto font-normal hover:text-[var(--gold)]',
+        'hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#0F172A]',
+      destructive:
+        'bg-[#EF4444] hover:bg-[#DC2626] text-white font-semibold shadow-xs',
+      success:
+        'bg-[#10B981] hover:bg-[#059669] text-white font-semibold shadow-xs',
     };
 
-    const sizes = {
-      sm: 'h-8 px-3 text-xs gap-1.5 font-mono-meta tracking-wider',
-      md: 'h-9 px-4 text-sm gap-2',
-      lg: 'h-11 px-6 text-base gap-2.5',
+    const sizeStyles = {
+      sm: 'h-8 px-3 text-xs gap-1.5',
+      md: 'h-10 px-4 text-sm gap-2',
+      lg: 'h-12 px-6 text-base gap-2.5',
       icon: 'h-9 w-9 p-0 text-sm justify-center',
     };
 
     return (
       <button
         ref={ref}
+        type={type}
+        className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
         disabled={disabled || isLoading}
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-current" />
+          <Loader2 className="h-4 w-4 animate-spin shrink-0 text-current" />
         ) : (
-          leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>
+          <>
+            {leftIcon && <span className="shrink-0">{leftIcon}</span>}
+            {children && <span>{children}</span>}
+            {rightIcon && <span className="shrink-0">{rightIcon}</span>}
+          </>
         )}
-        {children && <span>{children}</span>}
-        {!isLoading && rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
       </button>
     );
   }

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Search, Menu } from 'lucide-react';
+import { Search, LogOut, Sun, Moon, Menu } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { Breadcrumbs } from './Breadcrumbs';
-import { ThemeToggle } from './ThemeToggle';
-import { UserMenu } from './UserMenu';
 import { NotificationMenu } from '../../components/dashboard/NotificationMenu';
 import { Button } from '../../components/ui/Button';
 
@@ -11,16 +10,27 @@ export interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileSidebar }) => {
+  const { user, logout } = useAuth();
+  const [isDark, setIsDark] = React.useState(false);
+
+  const toggleTheme = () => {
+    setIsDark((prev) => !prev);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const displayName = user ? `${user.firstName} ${user.lastName}` : 'Alex Vance';
+
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/90 px-4 sm:px-6 backdrop-blur-md">
-      {/* Left Section: Mobile Menu & Breadcrumbs */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:px-6 transition-all shadow-2xs">
+      {/* Mobile Menu & Breadcrumbs Navigation */}
+      <div className="flex items-center gap-3">
         {onOpenMobileSidebar && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onOpenMobileSidebar}
-            className="md:hidden text-[var(--foreground)]"
+            className="lg:hidden text-[#64748B]"
+            aria-label="Open mobile menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -28,31 +38,68 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileSidebar }) => {
         <Breadcrumbs />
       </div>
 
-      {/* Right Section: Quick Search, Theme, Notifications & User Menu */}
+      {/* Global Controls & Actions */}
       <div className="flex items-center gap-3">
-        {/* Command Search Trigger */}
-        <button
-          type="button"
-          onClick={() => {}}
-          className="hidden sm:flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--border)] bg-[var(--card)] text-xs text-[var(--muted-foreground)] hover:border-[var(--gold)] transition cursor-pointer font-body"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span>Search records...</span>
-          <kbd className="ml-4 font-mono text-[10px] bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] rounded px-1.5 py-0.5">
-            ⌘K
-          </kbd>
-        </button>
+        {/* Search Bar */}
+        <div className="relative hidden md:flex items-center">
+          <button
+            type="button"
+            className="flex items-center gap-3 h-10 px-3.5 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] text-[12px] text-[#64748B] hover:border-[#CBD5E1] transition cursor-pointer"
+          >
+            <Search className="h-3.5 w-3.5 text-[#4F46E5]" />
+            <span>Search merchants, societies, transactions...</span>
+            <kbd className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded text-[#64748B] border border-[#E2E8F0]">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
 
-        {/* Notifications Component */}
+        {/* Dark Mode Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          aria-label="Toggle dark/light theme"
+          className="text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]"
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+
+        {/* Notification Bell Dropdown */}
         <NotificationMenu />
 
-        {/* Theme Toggle */}
-        <ThemeToggle />
+        <div className="h-4 w-px bg-[#E2E8F0] hidden sm:block mx-1" />
 
-        <div className="h-5 w-px bg-[var(--border)] mx-1" />
+        {/* Profile Avatar Controls */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-full bg-[#4F46E5] p-0.5 ring-2 ring-[#4F46E5]/20">
+              <img
+                src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'}
+                alt={displayName}
+                className="h-full w-full rounded-full object-cover"
+              />
+            </div>
+            <div className="hidden lg:flex flex-col text-left">
+              <span className="font-serif text-[14px] font-semibold text-[#0F172A] leading-tight">
+                {displayName}
+              </span>
+              <span className="font-sans text-[12px] text-[#64748B] font-medium">
+                {user?.role || 'Super Admin'}
+              </span>
+            </div>
+          </div>
 
-        {/* User Profile Menu */}
-        <UserMenu />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={logout}
+            className="text-[#64748B] hover:text-[#EF4444] hover:bg-[#F1F5F9]"
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </header>
   );

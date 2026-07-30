@@ -1,38 +1,52 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'outline' | 'gold' | 'forest' | 'success' | 'warning' | 'destructive' | 'info';
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant?: 'default' | 'forest' | 'gold' | 'secondary' | 'outline' | 'destructive' | 'violet' | 'cyan' | 'warning';
+  children: React.ReactNode;
+  showDot?: boolean;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
-  className,
   variant = 'default',
   children,
+  showDot = false,
+  className,
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-mono-meta tracking-wider font-semibold transition-colors focus:outline-none';
+    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-sans font-medium select-none border';
 
-  const variants = {
-    default: 'border border-[var(--ink)] bg-[var(--ink)] text-[var(--ink-foreground)]',
-    secondary:
-      'border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)]',
-    outline: 'text-[var(--foreground)] border border-[var(--border)]',
-    gold: 'border border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]',
-    forest: 'border border-[var(--primary)]/40 bg-[var(--primary)]/10 text-[var(--primary)]',
-    success:
-      'border border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400',
-    warning:
-      'border border-amber-600/30 bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400',
-    destructive:
-      'border border-red-600/30 bg-red-50 text-red-800 dark:bg-red-950/60 dark:text-red-400',
-    info: 'border border-blue-600/30 bg-blue-50 text-blue-800 dark:bg-blue-950/60 dark:text-blue-400',
+  const variantStyles = {
+    default: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20',
+    forest: 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20',
+    gold: 'bg-[#F59E0B]/10 text-[#D97706] border-[#F59E0B]/20',
+    warning: 'bg-[#F59E0B]/10 text-[#D97706] border-[#F59E0B]/20',
+    violet: 'bg-[#4F46E5]/10 text-[#4F46E5] border-[#4F46E5]/20',
+    cyan: 'bg-[#06B6D4]/10 text-[#0891B2] border-[#06B6D4]/20',
+    secondary: 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]',
+    outline: 'bg-white text-[#64748B] border-[#E2E8F0]',
+    destructive: 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20',
+  };
+
+  const dotColorStyles = {
+    default: 'bg-[#10B981]',
+    forest: 'bg-[#10B981]',
+    gold: 'bg-[#F59E0B]',
+    warning: 'bg-[#F59E0B]',
+    violet: 'bg-[#4F46E5]',
+    cyan: 'bg-[#06B6D4]',
+    secondary: 'bg-[#64748B]',
+    outline: 'bg-[#64748B]',
+    destructive: 'bg-[#EF4444]',
   };
 
   return (
-    <div className={cn(baseStyles, variants[variant], className)} {...props}>
+    <span className={cn(baseStyles, variantStyles[variant], className)} {...props}>
+      {showDot && (
+        <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', dotColorStyles[variant])} />
+      )}
       {children}
-    </div>
+    </span>
   );
 };
