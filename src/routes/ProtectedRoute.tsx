@@ -1,42 +1,50 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { PageLoader } from '../components/feedback/PageLoader';
-import { UserRole, Permission } from '../types/auth';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { usePermission } from '../hooks/usePermission';
+import type { PowerSection } from '../types/rbac.types';
 
 export interface ProtectedRouteProps {
-  children: React.ReactElement;
-  requiredRole?: UserRole;
-  requiredPermission?: Permission;
+  children?: React.ReactNode;
+  allowedRoles?: string[];
+  requiredPower?: PowerSection;
 }
+
+const getFallbackRoute = (hasPower: (p?: PowerSection) => boolean): string => {
+  if (hasPower('SOCIETIES')) return '/dashboard/societies';
+  if (hasPower('VENDORS')) return '/dashboard/vendors';
+  if (hasPower('SUBSCRIPTIONS')) return '/dashboard/subscriptions';
+  if (hasPower('SUPPORT')) return '/dashboard/support';
+  if (hasPower('SETTINGS')) return '/dashboard/settings';
+  if (hasPower('SUB_ADMINS')) return '/dashboard/sub-admins';
+  return '/dashboard/overview';
+};
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRole,
-  requiredPermission,
+  allowedRoles,
+  requiredPower,
 }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const { hasPower } = usePermission();
 
   if (isLoading) {
-    return <PageLoader message="Verifying security credentials..." />;
+    return null;
   }
 
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole && user.role !== 'super_admin') {
-    return <Navigate to="/auth/unauthorized" replace />;
+  const fallback = getFallbackRoute(hasPower);
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to={fallback} replace />;
   }
 
-  if (
-    requiredPermission &&
-    !user.permissions.includes(requiredPermission) &&
-    user.role !== 'super_admin'
-  ) {
-    return <Navigate to="/auth/unauthorized" replace />;
+  if (requiredPower && !hasPower(requiredPower)) {
+    return <Navigate to={fallback} replace />;
   }
 
-  return children;
+  return children ? <>{children}</> : <Outlet />;
 };

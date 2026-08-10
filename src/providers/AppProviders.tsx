@@ -1,37 +1,27 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ErrorBoundary } from '../components/feedback/ErrorBoundary';
-import { ThemeProvider } from '../context/ThemeContext';
-import { AuthProvider } from '../context/AuthContext';
-import { ToastProvider } from '../components/feedback/ToastSystem';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryProvider } from './QueryProvider';
+import { ThemeProvider } from './ThemeProvider';
+import { AuthProvider } from './AuthProvider';
+import { ToastProvider } from '../context/ToastContext';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
-      retry: (failureCount, error) => {
-        // Do not retry 401 or 403 errors
-        const status = (error as { status?: number })?.status;
-        if (status === 401 || status === 403) return false;
-        return failureCount < 2;
-      },
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+export interface AppProvidersProps {
+  children: React.ReactNode;
+}
 
-export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      <QueryProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider />
-            {children}
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <BrowserRouter>{children}</BrowserRouter>
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </QueryProvider>
     </ErrorBoundary>
   );
 };

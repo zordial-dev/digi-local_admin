@@ -1,105 +1,96 @@
 import React from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
-import { Form } from '../../components/form/Form';
-import { FormInput } from '../../components/form/FormInput';
-import { FormCheckbox } from '../../components/form/FormCheckbox';
-import { Button } from '../../components/ui/Button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
-import { loginSchema, LoginSchemaType } from '../../schemas/auth.schema';
-import { useLogin } from '../../hooks/auth/useAuthMutations';
-import { storage } from '../../utils/storage';
-
-const REMEMBERED_EMAIL_KEY = 'digi_remembered_email';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import './LoginPage.css';
+import { Input } from '../../components/common/Input/Input';
+import { Button } from '../../components/common/Button/Button';
+import { useAdminLoginMutation } from '../../hooks/useAuthMutations';
+import {
+  adminSecretLoginSchema,
+  type AdminSecretFormValues,
+} from '../../utils/validation.schemas';
+import { Mail, Key, ShieldCheck, UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const loginMutation = useLogin();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const adminLoginMutation = useAdminLoginMutation();
 
-  const rememberedEmail = storage.get<string>(REMEMBERED_EMAIL_KEY, 'admin@digilocal.com');
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+  const adminForm = useForm<AdminSecretFormValues>({
+    resolver: zodResolver(adminSecretLoginSchema),
+    defaultValues: {
+      admin_secret: 'admin123',
+      email: 'admin@digilocal.com',
+    },
+  });
 
-  const handleSubmit = async (values: LoginSchemaType) => {
-    try {
-      if (values.rememberMe) {
-        storage.set(REMEMBERED_EMAIL_KEY, values.email);
-      } else {
-        storage.remove(REMEMBERED_EMAIL_KEY);
-      }
+  const onAdminSubmit = (values: AdminSecretFormValues) => {
+    adminLoginMutation.mutate(values);
+  };
 
-      await loginMutation.mutateAsync({
-        email: values.email,
-        password: values.password,
-        rememberMe: values.rememberMe,
-      });
-
-      navigate(from, { replace: true });
-    } catch {
-      // Error handled by mutation toast
-    }
+  const handleQuickFill = (email: string, pass: string) => {
+    adminForm.setValue('email', email);
+    adminForm.setValue('admin_secret', pass);
   };
 
   return (
-    <Card className="shadow-xl border-[var(--border)] bg-[var(--card)]">
-      <CardHeader className="space-y-1.5 pb-4 text-center">
-        <CardTitle className="font-serif text-3xl font-bold">Sign In</CardTitle>
-        <CardDescription className="font-mono-meta text-[10px] text-[var(--gold)] font-semibold tracking-widest">
-          ENTERPRISE ACCESS PORTAL
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form
-          schema={loginSchema}
-          onSubmit={handleSubmit}
-          options={{
-            defaultValues: {
-              email: rememberedEmail,
-              password: 'password123',
-              rememberMe: Boolean(rememberedEmail),
-            },
-          }}
-        >
-          {() => (
-            <div className="space-y-4 font-body">
-              <FormInput
-                name="email"
-                label="Work Email"
-                placeholder="name@digilocal.com"
-                type="email"
-                required
-                leftIcon={<Mail className="h-4 w-4 text-[var(--muted-foreground)]" />}
-              />
+    <div className="login-page-container">
+      <div className="login-card glass-panel animate-fade-in">
+        <div className="login-header">
+          <div className="login-logo-badge overflow-hidden p-1.5 bg-white border border-[#C4A066] shadow-sm">
+            <img src="/logo.png" alt="DigiLocal Logo" className="w-full h-full object-contain" />
+          </div>
+          <h2 className="login-title">DigiLocal Portal</h2>
+          <p className="login-subtitle">Sign in to access your delegated admin features</p>
+        </div>
 
-              <FormInput
-                name="password"
-                label="Password"
-                placeholder="••••••••"
-                type="password"
-                required
-                leftIcon={<Lock className="h-4 w-4 text-[var(--muted-foreground)]" />}
-              />
+        <form className="login-form" onSubmit={adminForm.handleSubmit(onAdminSubmit)}>
+          <Input
+            label="Corporate Email Address"
+            placeholder="your.email@digilocal.com"
+            leftIcon={<Mail size={16} />}
+            error={adminForm.formState.errors.email?.message}
+            {...adminForm.register('email')}
+          />
+          <Input
+            label="Password / Access Key"
+            type="password"
+            placeholder="Enter your account password"
+            leftIcon={<Key size={16} />}
+            error={adminForm.formState.errors.admin_secret?.message}
+            {...adminForm.register('admin_secret')}
+          />
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            isLoading={adminLoginMutation.isPending}
+            className="login-submit-btn"
+          >
+            Sign In to Portal
+          </Button>
+        </form>
 
-              <div className="flex items-center justify-between">
-                <FormCheckbox name="rememberMe" label="Remember device" />
-                <Link to="/auth/forgot-password" className="text-xs text-[var(--gold)] hover:underline font-medium">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <Button
-                type="submit"
-                variant="default"
-                className="w-full mt-2"
-                isLoading={loginMutation.isPending}
-                rightIcon={<ArrowRight className="h-4 w-4" />}
-              >
-                Sign In to Dashboard
-              </Button>
-            </div>
-          )}
-        </Form>
-      </CardContent>
-    </Card>
+        <div className="mt-4 pt-4 border-t border-[#E4DCC9] flex flex-col gap-2">
+          <span className="text-[11px] font-bold text-[#6B7C70] uppercase tracking-wider text-center">
+            Quick Test Accounts
+          </span>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => handleQuickFill('admin@digilocal.com', 'admin123')}
+              className="text-[11px] px-2.5 py-1 rounded-lg bg-[#18281F] text-[#E6C35C] font-semibold flex items-center gap-1 hover:opacity-90 transition-all"
+            >
+              <ShieldCheck size={12} /> Super Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill('vikram.admin@digilocal.com', 'password123')}
+              className="text-[11px] px-2.5 py-1 rounded-lg bg-[#EFE8D8] text-[#18281F] font-semibold flex items-center gap-1 hover:bg-[#E4DCC9] transition-all"
+            >
+              <UserCheck size={12} /> Sub-Admin (Societies & Vendors)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
