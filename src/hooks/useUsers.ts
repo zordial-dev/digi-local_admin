@@ -32,13 +32,59 @@ export const useFlagUser = () => {
   });
 };
 
+export const useBlockUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason?: string }) => usersApi.blockUser(userId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_CACHE_KEYS.all });
+    },
+  });
+};
+
+export const useUnblockUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => usersApi.unblockUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_CACHE_KEYS.all });
+    },
+  });
+};
+
+export const useResetUserPassword = () => {
+  return useMutation({
+    mutationFn: (userId: string) => usersApi.resetUserPassword(userId),
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => usersApi.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_CACHE_KEYS.all });
+    },
+  });
+};
+
 export const useResetUserFlags = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (userId: string) => usersApi.resetUserFlags(userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: USER_CACHE_KEYS.all });
     },
+  });
+};
+
+export const useUserAnalytics = () => {
+  return useQuery({
+    queryKey: ['users', 'analytics'] as const,
+    queryFn: () => usersApi.getUserAnalytics(),
   });
 };

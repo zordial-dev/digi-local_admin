@@ -1,8 +1,8 @@
 import type { Vendor, RawVendorDTO, VendorStatus } from '../../types/vendor.types';
 
-export const mapVendorDTOToDomain = (raw: RawVendorDTO): Vendor => {
-  const vId = Number(raw.vendor_id) || 1;
-  const statusLower = (raw.status || 'ACTIVE').toLowerCase();
+export const mapVendorDTOToDomain = (raw: any): Vendor => {
+  const vId = raw.vendor_id || raw.id || '1';
+  const statusLower = String(raw.status || 'ACTIVE').toLowerCase();
 
   let normalizedStatus: VendorStatus = 'active';
 
@@ -16,41 +16,33 @@ export const mapVendorDTOToDomain = (raw: RawVendorDTO): Vendor => {
     normalizedStatus = 'active';
   }
 
-  const ordersCount = raw.total_orders || (vId * 142 + 85);
-  const earnings = raw.total_earnings || ordersCount * 340;
+  const ordersCount = Number(raw.total_orders ?? raw.total_orders_count ?? raw.totalOrdersCount ?? raw.totalOrders ?? 0);
+  const earnings = Number(raw.total_revenue ?? raw.total_earnings ?? raw.totalEarnings ?? 0);
+  const phone = raw.phone_number || raw.phone || '+91 98765 43210';
+  const formattedPhone = phone.startsWith('+91') ? phone : `+91 ${phone}`;
 
   return {
-    id: String(raw.vendor_id),
-    storeName: raw.store_name || 'Vendor Store',
-    ownerName: raw.vendor_name || 'Vendor Owner',
-    category: 'Grocery & Organic Fresh',
+    id: String(vId),
+    storeName: raw.store_name || raw.storeName || 'Vendor Store',
+    ownerName: raw.owner_name || raw.vendor_name || raw.ownerName || raw.name || 'Vendor Owner',
+    category: raw.category || raw.store_category || 'Grocery & Organic Fresh',
     email: raw.email || 'vendor@digilocal.com',
-    phone: raw.phone_number ? (raw.phone_number.startsWith('+91') ? raw.phone_number : `+91 ${raw.phone_number}`) : '+91 98765 43210',
-    address: raw.location || 'Block B, Sector 62',
-    societyName: raw.society_name || (raw.society_id ? `Society #${raw.society_id}` : 'Unassigned'),
-    societyId: raw.society_id !== undefined && raw.society_id !== null ? String(raw.society_id) : undefined,
-    gstin: raw.gst_number || `07AAAAA${vId}0001Z5`,
-    subscriptionTier: (raw.subscription_tier as any) || 'pro',
-    subscriptionRenewalDate: raw.renewal_date || (normalizedStatus === 'expired' ? '2026-05-15' : '2026-12-31'),
+    phone: formattedPhone,
+    address: raw.location || raw.address || 'Block B, Sector 62',
+    societyName: raw.society_name || raw.societyName || (raw.society_id ? `Society #${raw.society_id}` : 'Unassigned'),
+    societyId: raw.society_id !== undefined && raw.society_id !== null ? String(raw.society_id) : (raw.societyId ? String(raw.societyId) : undefined),
+    gstin: raw.gst_number || raw.gstin || `07AAAAA${vId}0001Z5`,
+    subscriptionTier: (raw.subscription_tier || raw.subscriptionTier || 'pro') as any,
+    subscriptionRenewalDate: raw.renewal_date || raw.subscriptionRenewalDate || (normalizedStatus === 'expired' ? '2026-05-15' : '2026-12-31'),
     status: normalizedStatus,
     totalEarnings: earnings,
     totalOrdersCount: ordersCount,
     avatarUrl:
       raw.logo ||
+      raw.avatarUrl ||
       'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300',
-    payments: raw.payments || [
-      {
-        payment_id: 101,
-        subscription_id: 201,
-        vendor_id: vId,
-        amount: 2999,
-        payment_method: 'UPI / Razorpay',
-        transaction_id: `TXN987${raw.vendor_id}`,
-        status: 'SUCCESS',
-        paid_at: '2026-07-01 10:00:00',
-      },
-    ],
-    createdAt: raw.vendor_created_at || raw.created_at || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    payments: raw.payments || [],
+    createdAt: raw.vendor_created_at || raw.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: raw.updated_at || raw.updatedAt || new Date().toISOString(),
   };
 };

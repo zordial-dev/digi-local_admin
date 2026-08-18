@@ -4,12 +4,14 @@ import { storage } from '../../utils/storage.utils';
 import type { RefreshTokenResponse } from '../../types/auth.types';
 
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://digi-local-backend.onrender.com/api';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Platform-Client': 'admin_dashboard',
   },
   timeout: 15000,
 });

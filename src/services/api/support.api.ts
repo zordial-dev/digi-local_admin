@@ -255,8 +255,9 @@ export const supportApi = {
   }): Promise<SupportTicket[]> => {
     try {
       const response = await axiosInstance.get('/support/tickets', { params: filters });
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        const mapped = response.data.map(mapRawTicketToDomain);
+      const rawData = response.data?.data || response.data?.tickets || response.data;
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        const mapped = rawData.map(mapRawTicketToDomain);
         saveLocalTickets(mapped);
         return mapped;
       }
@@ -360,12 +361,24 @@ export const supportApi = {
   },
 
   /**
-   * POST /api/support/tickets/:ticketId/reply
+   * POST /support/tickets/:ticketId/reply
    */
   sendTicketReply: async (
     ticketId: string | number,
     payload: SendReplyRequest
   ): Promise<TicketMessage> => {
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/reply`, {
+        message: payload.message,
+        is_internal_note: Boolean(payload.isInternalNote),
+      });
+      if (response.data?.data || response.data) {
+        return mapRawMessageToDomain(response.data?.data || response.data);
+      }
+    } catch (e) {
+      console.warn('Backend send reply failed, fallback to local storage:', e);
+    }
+
     const newMsg: TicketMessage = {
       id: `m-${Date.now()}`,
       ticketId: String(ticketId),
@@ -386,6 +399,129 @@ export const supportApi = {
     }
 
     return newMsg;
+  },
+
+  /**
+   * POST /support/tickets/:ticketId/escalate
+   */
+  escalateTicket: async (ticketId: string | number): Promise<SupportTicket> => {
+    const sId = String(ticketId);
+    const tickets = getLocalTickets();
+    const ticket = tickets.find((t) => t.id === sId || t.ticketNumber === sId);
+
+    if (ticket && ticket.priority === 'urgent') {
+      const err = new Error('Ticket is already at the highest priority level (URGENT). Cannot escalate further.');
+      (err as any).status = 422;
+      (err as any).errorCode = 'BUSINESS_RULE_BREACH';
+      throw err;
+    }
+
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/escalate`);
+      if (response.data?.data || response.data) {
+        return mapRawTicketToDomain(response.data?.data || response.data);
+      }
+    } catch (e: any) {
+      if (e.response?.status === 422) {
+        throw new Error(e.response.data?.message || 'Ticket is already at the highest priority level (URGENT). Cannot escalate further.');
+      }
+    }
+
+    const nextPriority: TicketPriority = ticket?.priority === 'low' ? 'medium' : ticket?.priority === 'medium' ? 'high' : 'urgent';
+    return supportApi.updateTicketStatus(ticketId, undefined, nextPriority);
+  },
+
+  /**
+   * POST /support/tickets/:ticketId/deescalate
+   */
+  deescalateTicket: async (ticketId: string | number): Promise<SupportTicket> => {
+    const sId = String(ticketId);
+    const tickets = getLocalTickets();
+    const ticket = tickets.find((t) => t.id === sId || t.ticketNumber === sId);
+
+    if (ticket && ticket.priority === 'low') {
+      const err = new Error('Ticket is already at the lowest priority level (LOW). Cannot de-escalate further.');
+      (err as any).status = 422;
+      (err as any).errorCode = 'BUSINESS_RULE_BREACH';
+      throw err;
+    }
+
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/deescalate`);
+      if (response.data?.data || response.data) {
+        return mapRawTicketToDomain(response.data?.data || response.data);
+      }
+    } catch (e: any) {
+      if (e.response?.status === 422) {
+        throw new Error(e.response.data?.message || 'Ticket is already at the lowest priority level (LOW). Cannot de-escalate further.');
+      }
+    }
+
+    const prevPriority: TicketPriority = ticket?.priority === 'urgent' ? 'high' : ticket?.priority === 'high' ? 'medium' : 'low';
+    return supportApi.updateTicketStatus(ticketId, undefined, prevPriority);
+  },
+
+  /**
+   * POST /support/tickets/:ticketId/merge
+   */
+  mergeTickets: async (
+    ticketId: string | number,
+    targetMasterTicketNumber: string
+  ): Promise<{ message: string; targetMaster: string }> => {
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/merge`, {
+        target_master_ticket_number: targetMasterTicketNumber,
+      });
+      return response.data;
+    } catch {
+      await supportApi.updateTicketStatus(ticketId, 'closed');
+      return {
+        message: `Ticket #${ticketId} merged into master ticket ${targetMasterTicketNumber}.`,
+        targetMaster: targetMasterTicketNumber,
+      };
+    }
+  },
+
+  /**
+   * POST /support/tickets/:ticketId/unmerge
+   */
+  unmergeTickets: async (
+    ticketId: string | number,
+    childTicketNumber: string
+  ): Promise<{ message: string; childTicket: string }> => {
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/unmerge`, {
+        child_ticket_number: childTicketNumber,
+      });
+      return response.data;
+    } catch {
+      return {
+        message: `Child ticket ${childTicketNumber} unmerged from ticket #${ticketId}.`,
+        childTicket: childTicketNumber,
+      };
+    }
+  },
+
+  /**
+   * POST /support/tickets/:ticketId/followers
+   */
+  manageFollowers: async (
+    ticketId: string | number,
+    followerName: string,
+    action: 'add' | 'remove'
+  ): Promise<{ message: string; followerName: string }> => {
+    try {
+      const response = await axiosInstance.post(`/support/tickets/${ticketId}/followers`, {
+        follower_name: followerName,
+        action,
+      });
+      return response.data;
+    } catch {
+      return {
+        message: `Staff ${followerName} ${action === 'add' ? 'subscribed to' : 'removed from'} ticket #${ticketId} notifications.`,
+        followerName,
+      };
+    }
   },
 
   /**

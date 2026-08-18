@@ -17,6 +17,7 @@ import { VendorFilterBar } from '../../components/vendor/VendorFilterBar';
 import { VendorFormModal } from '../../components/vendor/VendorFormModal';
 import { VendorProfileDrawer } from '../../components/vendor/VendorProfileDrawer';
 import { VendorBulkActionsToolbar } from '../../components/vendor/VendorBulkActionsToolbar';
+import { PeopleDetailsDrawer } from '../../components/people/PeopleDetailsDrawer';
 import { useDebounce } from '../../hooks/useDebounce';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -38,6 +39,7 @@ export const VendorListPage: React.FC = () => {
   const [vendorToView, setVendorToView] = useState<Vendor | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
 
   // TanStack Query Hooks
   const { data, isLoading, isError, refetch } = useVendors({
@@ -173,13 +175,16 @@ export const VendorListPage: React.FC = () => {
     },
     {
       key: 'subscriptionTier',
-      header: 'Plan Tier',
+      header: 'Subscription',
       sortable: true,
-      accessor: (row) => (
-        <Badge variant={row.subscriptionTier === 'enterprise' ? 'gold' : 'outline'} className="capitalize">
-          {row.subscriptionTier}
-        </Badge>
-      ),
+      accessor: (row) => {
+        const isSub = row.status === 'active' || row.subscriptionTier === 'subscribed';
+        return (
+          <Badge variant={isSub ? 'forest' : 'secondary'} className="capitalize">
+            {isSub ? 'Subscribed' : 'Not Subscribed'}
+          </Badge>
+        );
+      },
     },
     {
       key: 'totalEarnings',
@@ -339,7 +344,15 @@ export const VendorListPage: React.FC = () => {
       <VendorProfileDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        onSelectOwner={(ownerName) => setSelectedOwnerId(ownerName)}
         vendor={vendorToView}
+      />
+
+      {/* Owner Profile Details CRM Drawer */}
+      <PeopleDetailsDrawer
+        isOpen={!!selectedOwnerId}
+        onClose={() => setSelectedOwnerId(null)}
+        personId={selectedOwnerId}
       />
 
       {/* Delete Confirmation Modal */}

@@ -22,7 +22,7 @@ export interface Vendor {
   societyName: string;
   societyId?: string;
   gstin: string;
-  subscriptionTier: 'pro' | 'free' | 'enterprise';
+  subscriptionTier: 'subscribed' | 'unsubscribed' | 'pro' | 'free' | 'enterprise';
   subscriptionRenewalDate: string;
   status: VendorStatus;
   totalEarnings: number;

@@ -34,12 +34,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedToken = storage.getAccessToken() || storage.getAdminToken();
     const storedUser = storage.getUserData<User>();
 
-    // Purge legacy mock token strings to prevent 401 Authorization errors
-    if (storedToken === 'super-admin-mock-token' || storedToken?.startsWith('sub-admin-token-')) {
-      storage.clearAuth();
-      setIsLoading(false);
-      return;
-    }
+    // Restore session from localStorage
+    const storedRole = (storage.getUserRole() as UserRole) || null;
+    const storedToken = storage.getAccessToken() || storage.getAdminToken();
+    const storedUser = storage.getUserData<User>();
 
     if (storedToken && storedRole) {
       setRole(storedRole);
@@ -51,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           firstName: 'Admin',
           lastName: 'User',
           role: storedRole,
+          powers: ['SOCIETIES', 'VENDORS', 'SUBSCRIPTIONS', 'SUPPORT', 'SETTINGS', 'SUB_ADMINS'],
           permissions: ['*'],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -63,164 +62,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAdmin = async (payload: AdminLoginRequest) => {
     setIsLoading(true);
     try {
-      const email = payload.email.trim().toLowerCase();
-      const secret = payload.admin_secret.trim();
+      const email = (payload.email || '').trim().toLowerCase();
+      const secret = (payload.admin_secret || '').trim();
 
-      // Attempt authentic backend login first to retrieve real JWT Bearer token
-      let realToken: string | null = null;
-      let realRefreshToken: string | null = null;
-      let backendRole: string | null = null;
+      const res = await authApi.loginAdmin({ email, admin_secret: secret });
+      const realToken = res.token || res.accessToken;
+      const realRefreshToken = res.refreshToken || null;
+      const rawRole = String(res.role || res.user?.role || '').toLowerCase();
 
-      try {
-        const res = await authApi.loginAdmin({ email, admin_secret: secret });
-        if (res && (res.token || res.accessToken)) {
-          realToken = res.token || res.accessToken;
-          realRefreshToken = res.refreshToken || null;
-          backendRole = res.role || 'super_admin';
-        }
-      } catch (err) {
-        console.warn('Backend login notice:', err);
+      const isSubAdmin =
+        rawRole.includes('society') ||
+        rawRole.includes('sub') ||
+        email.includes('priya') ||
+        email.includes('sub') ||
+        email.includes('vikram');
+      const userRole: UserRole = isSubAdmin ? 'sub_admin' : 'super_admin';
+      const authToken = realToken || `jwt-admin-token-${Date.now()}`;
+
+      storage.setAdminToken(authToken);
+      storage.setAccessToken(authToken);
+      if (realRefreshToken) {
+        storage.setRefreshToken(realRefreshToken);
       }
+      storage.setUserRole(userRole);
 
-      // 1. Super Admin login
-      if (email === 'admin@digilocal.com' && (secret === 'admin123' || secret === 'admin')) {
-        const authToken = realToken || 'super-admin-mock-token';
-        storage.setAdminToken(authToken);
-        storage.setAccessToken(authToken);
-        if (realRefreshToken) {
-          storage.setRefreshToken(realRefreshToken);
-        }
-        storage.setUserRole('super_admin');
+      const backendPowers = res.user?.powers || res.user?.permissions;
+      const powers = isSubAdmin
+        ? Array.isArray(backendPowers) && backendPowers.length > 0
+          ? backendPowers
+          : ['SOCIETIES', 'VENDORS']
+        : ['SOCIETIES', 'VENDORS', 'SUBSCRIPTIONS', 'SUPPORT', 'SETTINGS', 'SUB_ADMINS'];
 
-        const superAdminUser: any = {
-          id: 'super-admin-1',
-          email: 'admin@digilocal.com',
-          firstName: 'Super',
-          lastName: 'Admin',
-          role: 'super_admin',
-          powers: ['SOCIETIES', 'VENDORS', 'SUBSCRIPTIONS', 'SETTINGS', 'SUB_ADMINS'],
-          permissions: ['*'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        storage.setUserData(superAdminUser);
+      const fullName = res.user?.name || res.user?.user_name || (isSubAdmin ? 'Priya Sharma' : 'Super Admin');
+      const nameParts = fullName.split(' ');
 
-        setToken(authToken);
-        setRole('super_admin');
-        setUser(superAdminUser);
-        return;
-      }
+      const adminUser: User = {
+        id: String(res.user?.id || (isSubAdmin ? 'sub-1' : 'super-admin-1')),
+        email: email || 'admin@digilocal.com',
+        firstName: nameParts[0] || (isSubAdmin ? 'Priya' : 'Super'),
+        lastName: nameParts.slice(1).join(' ') || (isSubAdmin ? 'Sharma' : 'Admin'),
+        role: userRole,
+        powers: powers as any,
+        permissions: res.user?.permissions || ['*'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      // 2. Sub-admins handling
-      const defaultSubAdmins = [
-        {
-          id: 'sub-1',
-          name: 'Vikram Mehta',
-          email: 'vikram.admin@digilocal.com',
-          password: 'password123',
-          role: 'sub_admin',
-          powers: ['SOCIETIES', 'VENDORS'],
-          status: 'active',
-        },
-        {
-          id: 'sub-2',
-          name: 'Ananya Sharma',
-          email: 'ananya.finance@digilocal.com',
-          password: 'password123',
-          role: 'sub_admin',
-          powers: ['SUBSCRIPTIONS'],
-          status: 'active',
-        },
-      ];
+      storage.setUserData(adminUser);
 
-      let subAdminsList: any[] = [];
-      try {
-        const raw = localStorage.getItem('digilocal_sub_admins_store');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            subAdminsList = [...parsed];
-          }
-        }
-      } catch {}
-
-      subAdminsList = [...subAdminsList, ...defaultSubAdmins];
-
-      const matchedSub = subAdminsList.find(
-        (sub) => sub.email && sub.email.trim().toLowerCase() === email
-      );
-
-      if (matchedSub) {
-        const expectedPassword = matchedSub.password || 'password123';
-        if (secret !== expectedPassword && secret !== 'password123' && secret !== 'admin123') {
-          throw new Error('Incorrect password for this sub-admin account.');
-        }
-
-        if (matchedSub.status === 'suspended') {
-          throw new Error('This sub-admin account is currently suspended. Please contact the Super Admin.');
-        }
-
-        const subPowers = matchedSub.powers && matchedSub.powers.length > 0
-          ? matchedSub.powers
-          : ['SOCIETIES', 'VENDORS'];
-
-        const authToken = realToken || `sub-admin-token-${matchedSub.id}`;
-        storage.setAdminToken(authToken);
-        storage.setAccessToken(authToken);
-        if (realRefreshToken) {
-          storage.setRefreshToken(realRefreshToken);
-        }
-        storage.setUserRole('sub_admin');
-
-        const subAdminUser: any = {
-          id: matchedSub.id,
-          email: matchedSub.email,
-          firstName: matchedSub.name,
-          lastName: '(Sub-Admin)',
-          role: 'sub_admin',
-          powers: subPowers,
-          permissions: subPowers,
-          createdAt: matchedSub.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        storage.setUserData(subAdminUser);
-
-        setToken(authToken);
-        setRole('sub_admin');
-        setUser(subAdminUser);
-        return;
-      }
-
-      // 3. General Backend Admin Login fallback
-      if (realToken) {
-        const userRole = (backendRole as UserRole) || 'super_admin';
-        storage.setAdminToken(realToken);
-        storage.setAccessToken(realToken);
-        if (realRefreshToken) {
-          storage.setRefreshToken(realRefreshToken);
-        }
-        storage.setUserRole(userRole);
-
-        const adminUser: any = {
-          id: '1',
-          email: payload.email,
-          firstName: 'System',
-          lastName: 'Admin',
-          role: userRole,
-          powers: ['SOCIETIES', 'VENDORS', 'SUBSCRIPTIONS', 'SETTINGS', 'SUB_ADMINS'],
-          permissions: ['*'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        storage.setUserData(adminUser);
-
-        setToken(realToken);
-        setRole(userRole);
-        setUser(adminUser);
-        return;
-      }
-
-      throw new Error('Invalid email or password. Please check your credentials.');
+      setToken(authToken);
+      setRole(userRole);
+      setUser(adminUser);
     } finally {
       setIsLoading(false);
     }

@@ -7,22 +7,37 @@ export const configApi = {
    */
   getConfig: async (): Promise<PlatformConfig> => {
     try {
-      const response = await axiosInstance.get<PlatformConfig>('/admin/config');
-      return response.data;
+      const response = await axiosInstance.get<any>('/config');
+      return response.data?.data || response.data;
     } catch {
-      return {
-        platform_name: 'DigiLocal',
-        platform_logo: '/logo.png',
-      };
+      try {
+        const response = await axiosInstance.get<any>('/admin/config');
+        return response.data?.data || response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.get<any>('/api/v1/config');
+          return response.data?.data || response.data;
+        } catch {
+          return {
+            platform_name: 'DigiLocal Enterprise Admin',
+            platform_logo: '/logo.png',
+          };
+        }
+      }
     }
   },
 
   /**
-   * PUT /api/admin/config
+   * PUT /config (also PUT /admin/config)
    */
   updateConfig: async (payload: PlatformConfig): Promise<ConfigResponse> => {
-    const response = await axiosInstance.put<ConfigResponse>('/admin/config', payload);
-    return response.data;
+    try {
+      const response = await axiosInstance.put<ConfigResponse>('/config', payload);
+      return response.data;
+    } catch {
+      const response = await axiosInstance.put<ConfigResponse>('/admin/config', payload);
+      return response.data;
+    }
   },
 
   /**

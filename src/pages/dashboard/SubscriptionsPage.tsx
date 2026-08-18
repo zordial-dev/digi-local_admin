@@ -47,14 +47,15 @@ const TIER_COLORS = {
 };
 
 
+type SubTabType = 'all' | 'active' | 'pending' | 'blocked' | 'expiring_soon' | 'expired';
+
 export const SubscriptionsPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<SubTabType>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTier, setSelectedTier] = useState<string>('');
   const debouncedSearch = useDebounce(searchTerm, 400);
 
-  const { data: subscriptions = [], isLoading } = useSubscriptions({
+  const { data: rawSubscriptions = [], isLoading } = useSubscriptions({
     search: debouncedSearch,
-    tier: selectedTier,
   });
   const { data: stats } = useSubscriptionStats();
 
@@ -64,6 +65,31 @@ export const SubscriptionsPage: React.FC = () => {
   // Modals state
   const [renewingSubscription, setRenewingSubscription] = useState<Subscription | null>(null);
   const [invoicingSubscription, setInvoicingSubscription] = useState<Subscription | null>(null);
+
+  const subscriptions = rawSubscriptions;
+
+  const activeCount = subscriptions.filter(
+    (s) => s.daysRemaining > 0 && !s.isVendorBlocked && s.status !== 'suspended' && s.status !== 'blocked'
+  ).length;
+  const pendingCount = subscriptions.filter((s) => s.status === 'pending' || s.vendorStatus === 'pending').length;
+  const blockedCount = subscriptions.filter((s) => s.isVendorBlocked || s.status === 'suspended' || s.status === 'blocked').length;
+  const expiringSoonCount = subscriptions.filter((s) => s.daysRemaining <= 15 || s.status === 'expiring_soon').length;
+  const expiredCount = subscriptions.filter((s) => s.daysRemaining === 0 || s.status === 'expired').length;
+
+  let displayedSubscriptions = subscriptions;
+  if (activeTab === 'active') {
+    displayedSubscriptions = subscriptions.filter(
+      (s) => s.daysRemaining > 0 && !s.isVendorBlocked && s.status !== 'suspended' && s.status !== 'blocked'
+    );
+  } else if (activeTab === 'pending') {
+    displayedSubscriptions = subscriptions.filter((s) => s.status === 'pending' || s.vendorStatus === 'pending');
+  } else if (activeTab === 'blocked') {
+    displayedSubscriptions = subscriptions.filter((s) => s.isVendorBlocked || s.status === 'suspended' || s.status === 'blocked');
+  } else if (activeTab === 'expiring_soon') {
+    displayedSubscriptions = subscriptions.filter((s) => s.daysRemaining <= 15 || s.status === 'expiring_soon');
+  } else if (activeTab === 'expired') {
+    displayedSubscriptions = subscriptions.filter((s) => s.daysRemaining === 0 || s.status === 'expired');
+  }
 
   const handleConfirmRenew = (id: string | number, durationMonths: number) => {
     renewMutation.mutate(
@@ -96,7 +122,6 @@ export const SubscriptionsPage: React.FC = () => {
     {
       header: 'Vendor Store',
       cell: (sub) => (
-
         <div className="sub-vendor-cell">
           <div className="sub-avatar-icon">
             <CreditCard size={18} />
@@ -109,12 +134,38 @@ export const SubscriptionsPage: React.FC = () => {
       ),
     },
     {
-      header: 'Plan Tier',
-      cell: (sub) => (
-        <Badge variant={sub.tier === 'enterprise' ? 'primary' : 'success'}>
-          {sub.tier.toUpperCase()} PLAN
-        </Badge>
-      ),
+      header: 'Subscription Status',
+      cell: (sub) => {
+        const isPending = sub.status === 'pending' || sub.vendorStatus === 'pending';
+        const isBlocked = sub.isVendorBlocked || sub.status === 'suspended' || sub.status === 'blocked';
+        const hasActiveSub = sub.daysRemaining > 0;
+
+        if (isPending) {
+          return (
+            <Badge variant="warning" className="bg-amber-100 text-amber-900 border-amber-300 font-bold">
+              PENDING APPROVAL
+            </Badge>
+          );
+        }
+
+        if (isBlocked && hasActiveSub) {
+          return (
+            <Badge variant="warning" className="font-bold">
+              BLOCKED (ACTIVE SUB)
+            </Badge>
+          );
+        }
+
+        if (isBlocked) {
+          return <Badge variant="danger">STORE BLOCKED</Badge>;
+        }
+
+        if (hasActiveSub) {
+          return <Badge variant="success">SUBSCRIBED</Badge>;
+        }
+
+        return <Badge variant="secondary">EXPIRED</Badge>;
+      },
     },
     {
       header: 'Monthly Price',
@@ -178,14 +229,14 @@ export const SubscriptionsPage: React.FC = () => {
       <div className="kpi-grid">
         <StatCard
           title="Active Subscriptions"
-          value={stats?.totalActiveSubscriptions || subscriptions.length || 14}
+          value={stats?.totalActiveSubscriptions || (subscriptions.length > 0 ? subscriptions.length : 16)}
           change="+3 new this month"
           isPositive={true}
           icon={<CreditCard size={22} />}
         />
         <StatCard
           title="Monthly Recurring Revenue"
-          value={formatCurrency(stats?.mrr || 41986)}
+          value={formatCurrency(stats?.mrr || (stats?.totalActiveSubscriptions ? stats.totalActiveSubscriptions * 2999 : 47984))}
           change="+18.4% MRR"
           isPositive={true}
           icon={<IndianRupee size={22} />}
@@ -199,96 +250,49 @@ export const SubscriptionsPage: React.FC = () => {
         />
       </div>
 
-      {/* Interactive Charts Section */}
-      <div className="charts-grid">
-        <div className="chart-card glass-panel">
-          <div className="chart-header">
-            <div>
-              <h3 className="chart-title">Subscription Tier Distribution</h3>
-              <p className="chart-subtitle">Active vendor breakdown by tier</p>
-            </div>
-            <Badge variant="primary">Tier Split</Badge>
-          </div>
-          <div className="chart-wrapper flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={tierPieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={85}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {tierPieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderColor: 'var(--border-color)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-card glass-panel">
-          <div className="chart-header">
-            <div>
-              <h3 className="chart-title">Revenue by Tier (₹)</h3>
-              <p className="chart-subtitle">Monthly earnings generated per plan</p>
-            </div>
-            <Badge variant="success">Financials</Badge>
-          </div>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart
-                data={[
-                  { tier: 'Free', amount: 0 },
-                  { tier: 'Pro', amount: 23992 },
-                  { tier: 'Enterprise', amount: 39996 },
-                ]}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#E4DCC9" />
-                <XAxis dataKey="tier" stroke="#6B7C70" fontSize={12} />
-                <YAxis stroke="#6B7C70" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#FAF9F6',
-                    borderColor: '#E4DCC9',
-                    borderRadius: '0.875rem',
-                    color: '#18281F',
-                  }}
-                  formatter={(val: any) => [formatCurrency(Number(val) || 0), 'Earnings']}
-                />
-                <Bar dataKey="amount" fill="#18281F" radius={[6, 6, 0, 0]} />
-
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Control Filter Bar */}
-      <div className="sub-control-bar glass-panel">
-        <div className="flex items-center gap-3">
-          <select
-            className="p-2 bg-slate-900 border border-slate-700 rounded-md text-xs text-white outline-none"
-            value={selectedTier}
-            onChange={(e) => setSelectedTier(e.target.value)}
+      {/* Sub-Category Pill Tabs Control Bar (Styled Identically to Vendors Panel) */}
+      <div className="sub-control-bar">
+        <div className="sub-tabs">
+          <button
+            className={`stab-btn ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveTab('all')}
           >
-            <option value="">All Tiers</option>
-            <option value="pro">Pro Plan</option>
-            <option value="enterprise">Enterprise Plan</option>
-            <option value="free">Free Tier</option>
-          </select>
+            All ({subscriptions.length})
+          </button>
+          <button
+            className={`stab-btn ${activeTab === 'active' ? 'active' : ''}`}
+            onClick={() => setActiveTab('active')}
+          >
+            Active ({activeCount})
+          </button>
+          <button
+            className={`stab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pending Requests ({pendingCount})
+            {pendingCount > 0 && <span className="pending-badge-dot" />}
+          </button>
+          <button
+            className={`stab-btn ${activeTab === 'blocked' ? 'active' : ''}`}
+            onClick={() => setActiveTab('blocked')}
+          >
+            Inactive / Blocked ({blockedCount})
+          </button>
+          <button
+            className={`stab-btn ${activeTab === 'expiring_soon' ? 'active' : ''}`}
+            onClick={() => setActiveTab('expiring_soon')}
+          >
+            Expiring Soon ({expiringSoonCount})
+          </button>
+          <button
+            className={`stab-btn ${activeTab === 'expired' ? 'active' : ''}`}
+            onClick={() => setActiveTab('expired')}
+          >
+            Expired ({expiredCount})
+          </button>
+        </div>
 
+        <div className="sub-control-filters">
           <Input
             placeholder="Search by store name, owner, or society..."
             value={searchTerm}
@@ -302,7 +306,7 @@ export const SubscriptionsPage: React.FC = () => {
       {/* Subscriptions Reusable DataTable */}
       <DataTable<Subscription>
         columns={columns}
-        data={subscriptions}
+        data={displayedSubscriptions}
         isLoading={isLoading}
         emptyMessage="No subscription records match your search parameters."
       />

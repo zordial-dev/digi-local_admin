@@ -19,7 +19,14 @@ export const SocietyDetailsDrawer: React.FC<SocietyDetailsDrawerProps> = ({
   onClose,
   society,
 }) => {
-  const { data: vendors, isLoading: isLoadingVendors } = useSocietyVendors(society?.id || '');
+  const { data: rawVendors, isLoading: isLoadingVendors } = useSocietyVendors(society?.id || '');
+  const vendors = React.useMemo(() => {
+    if (!rawVendors) return [];
+    return rawVendors.filter((v) => {
+      const st = String(v.status || 'active').toLowerCase();
+      return st === 'active' || st === 'approved';
+    });
+  }, [rawVendors]);
 
   if (!isOpen || !society) return null;
 

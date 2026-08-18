@@ -23,12 +23,14 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 export interface VendorProfileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onSelectOwner?: (ownerName: string) => void;
   vendor: Vendor | null;
 }
 
 export const VendorProfileDrawer: React.FC<VendorProfileDrawerProps> = ({
   isOpen,
   onClose,
+  onSelectOwner,
   vendor,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'gst' | 'hours' | 'payments'>('overview');
@@ -71,8 +73,17 @@ export const VendorProfileDrawer: React.FC<VendorProfileDrawerProps> = ({
                       {vendor.status.replace('_', ' ')}
                     </Badge>
                   </div>
-                  <p className="font-mono text-xs text-[var(--muted-foreground)] mt-0.5">
-                    Owned by {vendor.ownerName} • {vendor.category}
+                  <p className="font-mono text-xs text-[var(--muted-foreground)] mt-0.5 flex items-center gap-1">
+                    <span>Owned by</span>
+                    <button
+                      type="button"
+                      onClick={() => onSelectOwner?.(vendor.ownerName)}
+                      className="font-bold text-[#C4A066] hover:underline cursor-pointer transition-colors"
+                      title="Click to view Owner details"
+                    >
+                      {vendor.ownerName} ↗
+                    </button>
+                    <span>• {vendor.category}</span>
                   </p>
                 </div>
               </div>

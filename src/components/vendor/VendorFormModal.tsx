@@ -142,12 +142,11 @@ export const VendorFormModal: React.FC<VendorFormModalProps> = ({
               />
               <FormSelect
                 name="subscriptionTier"
-                label="Subscription Tier"
+                label="Subscription Status"
                 required
                 options={[
-                  { label: 'Free Starter', value: 'free' },
-                  { label: 'Pro Vendor', value: 'pro' },
-                  { label: 'Enterprise Tier', value: 'enterprise' },
+                  { label: 'Active Subscription', value: 'subscribed' },
+                  { label: 'Not Subscribed', value: 'unsubscribed' },
                 ]}
               />
             </div>

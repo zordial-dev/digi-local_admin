@@ -15,6 +15,7 @@ import { Search, Filter, UserPlus, RefreshCw, Users } from 'lucide-react';
 
 export const UsersPage: React.FC = () => {
   const { addToast } = useToast();
+  const [activeCategory, setActiveCategory] = useState<'all' | 'user' | 'user_vendor' | 'flagged'>('all');
   const [filters, setFilters] = useState<PeopleFilterOptions>({
     search: '',
     personType: 'all',
@@ -29,6 +30,24 @@ export const UsersPage: React.FC = () => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const totalCount = peopleList.length;
+  const residentCount = peopleList.filter((p) => p.personType === 'user').length;
+  const dualRoleCount = peopleList.filter((p) => p.personType === 'user_vendor').length;
+  const flaggedBannedCount = peopleList.filter(
+    (p) => (p.flagsCount && p.flagsCount > 0) || p.status === 'warned' || p.status === 'banned' || p.status === 'suspended'
+  ).length;
+
+  let displayedPeople = peopleList;
+  if (activeCategory === 'user') {
+    displayedPeople = peopleList.filter((p) => p.personType === 'user');
+  } else if (activeCategory === 'user_vendor') {
+    displayedPeople = peopleList.filter((p) => p.personType === 'user_vendor');
+  } else if (activeCategory === 'flagged') {
+    displayedPeople = peopleList.filter(
+      (p) => (p.flagsCount && p.flagsCount > 0) || p.status === 'warned' || p.status === 'banned' || p.status === 'suspended'
+    );
+  }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters((prev) => ({ ...prev, search: e.target.value }));
@@ -84,27 +103,76 @@ export const UsersPage: React.FC = () => {
         />
       </div>
 
-      {/* KPI Analytics Stat Cards */}
-      <PeopleAnalyticsHeader />
+      {/* KPI Analytics Stat Cards (Clickable Category Selectors) */}
+      <PeopleAnalyticsHeader
+        onSelectCategory={setActiveCategory}
+        activeCategory={activeCategory}
+      />
 
-      {/* Control Bar: Search & Advanced Filters */}
+      {/* Sub-Category Pill Tabs & Search Control Bar */}
       <div className="p-4 bg-white border border-[#E4DCC9] rounded-2xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="w-full md:w-96">
-          <Input
-            placeholder="Search by name, email, phone, or society..."
-            leftIcon={<Search size={15} className="text-[#C4A066]" />}
-            value={filters.search || ''}
-            onChange={handleSearchChange}
-          />
+        {/* Category Pill Tabs */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              activeCategory === 'all'
+                ? 'bg-[#18281F] text-[#F7F4EE] font-bold shadow-sm'
+                : 'bg-[#FAF9F6] text-[#18281F] border border-[#E4DCC9] hover:bg-[#EFE8D8]'
+            }`}
+            onClick={() => setActiveCategory('all')}
+          >
+            All Directory Users ({totalCount})
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              activeCategory === 'user'
+                ? 'bg-[#18281F] text-[#F7F4EE] font-bold shadow-sm'
+                : 'bg-[#FAF9F6] text-[#18281F] border border-[#E4DCC9] hover:bg-[#EFE8D8]'
+            }`}
+            onClick={() => setActiveCategory('user')}
+          >
+            Resident Customers ({residentCount})
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+              activeCategory === 'user_vendor'
+                ? 'bg-[#18281F] text-[#F7F4EE] font-bold shadow-sm'
+                : 'bg-[#FAF9F6] text-[#18281F] border border-[#E4DCC9] hover:bg-[#EFE8D8]'
+            }`}
+            onClick={() => setActiveCategory('user_vendor')}
+          >
+            User & Vendor ({dualRoleCount})
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-2 ${
+              activeCategory === 'flagged'
+                ? 'bg-[#18281F] text-[#F7F4EE] font-bold shadow-sm'
+                : 'bg-[#FAF9F6] text-[#18281F] border border-[#E4DCC9] hover:bg-[#EFE8D8]'
+            }`}
+            onClick={() => setActiveCategory('flagged')}
+          >
+            Flagged / Banned ({flaggedBannedCount})
+            {flaggedBannedCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-500" />}
+          </button>
         </div>
 
+        {/* Search & Filter Trigger */}
         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <div className="w-full md:w-72">
+            <Input
+              placeholder="Search directory..."
+              leftIcon={<Search size={15} className="text-[#C4A066]" />}
+              value={filters.search || ''}
+              onChange={handleSearchChange}
+            />
+          </div>
+
           <Button
             variant="outline"
             leftIcon={<Filter size={14} />}
             onClick={() => setIsFilterModalOpen(true)}
           >
-            Filter Directory
+            Filters
             {(filters.personType !== 'all' || filters.status !== 'all' || (filters.minFlags && filters.minFlags > 0)) && (
               <span className="ml-1 px-1.5 py-0.5 bg-[#C4A066] text-white rounded-full text-[10px] font-bold">
                 Active
@@ -112,8 +180,8 @@ export const UsersPage: React.FC = () => {
             )}
           </Button>
 
-          <span className="text-xs text-[#6B7C70] font-semibold flex items-center gap-1 border-l border-[#E4DCC9] pl-3 ml-1">
-            <Users size={14} className="text-[#C4A066]" /> Showing <strong>{peopleList.length}</strong> Users
+          <span className="text-xs text-[#6B7C70] font-semibold flex items-center gap-1 border-l border-[#E4DCC9] pl-3 ml-1 whitespace-nowrap">
+            <Users size={14} className="text-[#C4A066]" /> <strong>{displayedPeople.length}</strong> Entries
           </span>
         </div>
       </div>
@@ -121,7 +189,7 @@ export const UsersPage: React.FC = () => {
       {/* Enterprise Data Table */}
       <div className="bg-white border border-[#E4DCC9] rounded-2xl shadow-sm overflow-hidden p-1">
         <PeopleEnterpriseDataTable
-          data={peopleList}
+          data={displayedPeople}
           isLoading={isLoading}
           onSelectPerson={(id) => setSelectedPersonId(id)}
           onIssueStrike={handleIssueStrike}

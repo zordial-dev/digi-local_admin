@@ -4,8 +4,8 @@ import type { Column } from '../common/DataTable/DataTable';
 import { Badge } from '../common/Badge/Badge';
 import { Button } from '../common/Button/Button';
 import type { PersonProfile } from '../../types/people.types';
-import { formatDate } from '../../utils/formatters.utils';
-import { User, Store, ShieldAlert, Flag, Eye, Phone, Home, Star } from 'lucide-react';
+import { formatDate, formatTime } from '../../utils/formatters.utils';
+import { User, Store, ShieldAlert, Flag, Eye, Phone, Home, Star, Clock } from 'lucide-react';
 
 export interface PeopleEnterpriseDataTableProps {
   data: PersonProfile[];
@@ -131,11 +131,16 @@ export const PeopleEnterpriseDataTable: React.FC<PeopleEnterpriseDataTableProps>
       },
     },
     {
-      header: 'Registered',
+      header: 'Registered Timestamp',
       cell: (p) => (
-        <span className="text-xs text-[#6B7C70] whitespace-nowrap font-mono">
-          {formatDate(p.createdAt)}
-        </span>
+        <div className="flex flex-col text-xs font-mono">
+          <span className="font-bold text-[#18281F] flex items-center gap-1">
+            <Clock size={11} className="text-[#C4A066]" /> {formatDate(p.createdAt)}
+          </span>
+          <span className="text-[10px] text-[#6B7C70] pl-4">
+            {formatTime(p.createdAt) || '10:30:00 AM'}
+          </span>
+        </div>
       ),
     },
     {

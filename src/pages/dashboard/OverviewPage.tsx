@@ -47,43 +47,10 @@ export const OverviewPage: React.FC = () => {
   const [pendingVisibleCount, setPendingVisibleCount] = React.useState(3);
   const [recentVisibleCount, setRecentVisibleCount] = React.useState(3);
 
-  const blockedSocietyIds = React.useMemo(() => {
-    const set = new Set<string>();
-    for (const s of societies) {
-      if (s.status === 'suspended' || s.status === 'pending') {
-        set.add(String(s.id));
-      }
-    }
-    return set;
-  }, [societies]);
-
-  const blockedSocietyNames = React.useMemo(() => {
-    const set = new Set<string>();
-    for (const s of societies) {
-      if (s.status === 'suspended' || s.status === 'pending') {
-        set.add(s.name.trim().toLowerCase());
-      }
-    }
-    return set;
-  }, [societies]);
-
-  const vendors = React.useMemo(() => {
-    return rawVendors.map((v) => {
-      const isSocietyBlocked =
-        (v.societyId && blockedSocietyIds.has(String(v.societyId))) ||
-        (v.societyName && blockedSocietyNames.has(v.societyName.trim().toLowerCase()));
-
-      if (isSocietyBlocked) {
-        return {
-          ...v,
-          status: 'suspended' as const,
-        };
-      }
-      return v;
-    });
-  }, [rawVendors, blockedSocietyIds, blockedSocietyNames]);
+  const vendors = rawVendors;
 
   const totalVendors = vendors.length;
+  const activeVendorsCount = vendors.filter((v) => v.status === 'active').length;
   const pendingVendors = vendors.filter((v) => v.status === 'pending');
   const activeSocietiesCount = societies.filter((s) => s.status === 'active').length;
 
@@ -100,6 +67,8 @@ export const OverviewPage: React.FC = () => {
       setRecentVisibleCount((prev) => Math.min(prev + 3, vendors.length));
     }
   };
+
+  const totalPlatformRevenue = vendors.reduce((sum, v) => sum + (v.totalEarnings || 0), 0) || 1663000;
 
   return (
     <div className="overview-page">
@@ -123,7 +92,7 @@ export const OverviewPage: React.FC = () => {
         {hasPower('SUBSCRIPTIONS') && (
           <StatCard
             title="Total Platform Revenue"
-            value={formatCurrency(1663000)}
+            value={formatCurrency(totalPlatformRevenue)}
             change="+24.8% vs last month"
             isPositive={true}
             icon={<IndianRupee size={22} />}
@@ -133,7 +102,7 @@ export const OverviewPage: React.FC = () => {
         {hasPower('VENDORS') && (
           <StatCard
             title="Active Vendors"
-            value={totalVendors}
+            value={activeVendorsCount}
             change="+12 onboarding"
             isPositive={true}
             icon={<Store size={22} />}

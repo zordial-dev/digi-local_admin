@@ -6,6 +6,7 @@ import { useVendors } from '../../hooks/useVendors';
 import type { Society } from '../../types/society.types';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Store, Mail, MapPin, Building2, User } from 'lucide-react';
+import { isSocietyMatch } from '../../utils/society.utils';
 
 export interface SocietyDetailsDrawerProps {
   isOpen: boolean;
@@ -22,20 +23,26 @@ export const SocietyDetailsDrawer: React.FC<SocietyDetailsDrawerProps> = ({
   const { data: societyVendors = [], isLoading } = useSocietyVendors(society?.id);
 
   const effectiveVendors = React.useMemo(() => {
-    if (societyVendors && societyVendors.length > 0) return societyVendors;
-    if (!society || allVendors.length === 0) return [];
+    let sourceList: any[] = [];
+    if (societyVendors && societyVendors.length > 0) {
+      sourceList = societyVendors;
+    } else if (society && allVendors.length > 0) {
+      const matched = allVendors.filter((v) =>
+        isSocietyMatch(v.societyId, v.societyName, society.id, society.name)
+      );
 
-    const matched = allVendors.filter(
-      (v) =>
-        v.societyId === String(society.id) ||
-        (v.societyName && v.societyName.toLowerCase().includes(society.name.toLowerCase()))
-    );
-
-    const uniqueMap = new Map<string, typeof matched[0]>();
-    for (const v of matched) {
-      if (!uniqueMap.has(v.id)) uniqueMap.set(v.id, v);
+      const uniqueMap = new Map<string, typeof matched[0]>();
+      for (const v of matched) {
+        if (!uniqueMap.has(v.id)) uniqueMap.set(v.id, v);
+      }
+      sourceList = Array.from(uniqueMap.values());
     }
-    return Array.from(uniqueMap.values());
+
+    // Filter to ONLY ACTIVE vendors
+    return sourceList.filter((v) => {
+      const st = String(v.status || 'active').toLowerCase();
+      return st === 'active' || st === 'approved';
+    });
   }, [societyVendors, allVendors, society]);
 
   if (!society) return null;
@@ -84,7 +91,7 @@ export const SocietyDetailsDrawer: React.FC<SocietyDetailsDrawerProps> = ({
 
           <div className="flex justify-between items-center text-sm">
             <span className="text-[#6B7C70] font-medium">Vendors Onboarded:</span>
-            <Badge variant="primary">{society.totalVendorsCount} Active Vendors</Badge>
+            <Badge variant="primary">{effectiveVendors.length} Active Vendors</Badge>
           </div>
         </div>
 
@@ -126,7 +133,9 @@ export const SocietyDetailsDrawer: React.FC<SocietyDetailsDrawerProps> = ({
                       <Mail size={12} /> {v.email}
                     </span>
                   </div>
-                  <Badge variant="success">ACTIVE</Badge>
+                  <Badge variant={String(v.status).toLowerCase() === 'suspended' || String(v.status).toLowerCase() === 'blocked' ? 'danger' : 'success'}>
+                    {String(v.status || 'ACTIVE').toUpperCase()}
+                  </Badge>
                 </div>
               ))}
             </div>

@@ -1,6 +1,8 @@
 import { axiosInstance } from './axiosInstance';
 import type { Vendor, VendorApprovalResponse } from '../../types/vendor.types';
 import { mapVendorDTOToDomain } from '../mappers/vendor.mapper';
+import { cleanQueryParams } from '../../utils/api.utils';
+import { ENV } from '../../constants/env.constants';
 
 export interface VendorListParams {
   search?: string;
@@ -178,34 +180,62 @@ export const vendorsApi = {
    * GET /api/admin/vendors
    */
   getAllVendors: async (params?: VendorListParams): Promise<Vendor[]> => {
+    const rawCleaned = cleanQueryParams(params);
+    const cleaned: Record<string, any> = rawCleaned ? { ...rawCleaned } : {};
+
+    const isRenderCloud =
+      String(ENV.API_BASE_URL || '').includes('onrender.com') ||
+      String(axiosInstance.defaults.baseURL || '').includes('onrender.com');
+
+    // Ensure all vendors across all pages are returned from backend
+    if (!cleaned.limit) {
+      cleaned.limit = 1000;
+    }
+
+    // Render cloud backend expects status parameter to be passed for /vendors
+    if (!cleaned.status && !cleaned.search) {
+      cleaned.status = 'all';
+    }
+
+    const primaryEndpoint = isRenderCloud ? '/vendors' : '/admin/vendors';
+    const fallbackEndpoint = isRenderCloud ? '/admin/vendors' : '/vendors';
+
+    let rawData: any = null;
     try {
-      const response = await axiosInstance.get<any>('/admin/vendors', { params });
-      const rawData = response.data?.data || response.data?.vendors || response.data;
-      if (Array.isArray(rawData) && rawData.length > 0) {
-        const uniqueMap = new Map<string, Vendor>();
-        for (const rawItem of rawData) {
-          const domainVendor = mapVendorDTOToDomain(rawItem);
-          if (!uniqueMap.has(domainVendor.id)) {
-            uniqueMap.set(domainVendor.id, domainVendor);
-          } else {
-            const existing = uniqueMap.get(domainVendor.id)!;
-            if (domainVendor.payments && domainVendor.payments.length > 0) {
-              const existingTxnIds = new Set(existing.payments.map((p) => p.transaction_id));
-              for (const p of domainVendor.payments) {
-                if (!existingTxnIds.has(p.transaction_id)) {
-                  existing.payments.push(p);
-                }
+      const response = await axiosInstance.get<any>(primaryEndpoint, { params: cleaned });
+      rawData = response.data?.data || response.data?.vendors || response.data;
+    } catch {
+      try {
+        const response = await axiosInstance.get<any>(fallbackEndpoint, { params: cleaned });
+        rawData = response.data?.data || response.data?.vendors || response.data;
+      } catch (err) {
+        console.warn('Backend vendors fetch failed, using fallback vendors:', err);
+      }
+    }
+
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      const uniqueMap = new Map<string, Vendor>();
+      for (const rawItem of rawData) {
+        const domainVendor = mapVendorDTOToDomain(rawItem);
+        if (!uniqueMap.has(domainVendor.id)) {
+          uniqueMap.set(domainVendor.id, domainVendor);
+        } else {
+          const existing = uniqueMap.get(domainVendor.id)!;
+          if (domainVendor.payments && domainVendor.payments.length > 0) {
+            const existingTxnIds = new Set(existing.payments.map((p) => p.transaction_id));
+            for (const p of domainVendor.payments) {
+              if (!existingTxnIds.has(p.transaction_id)) {
+                existing.payments.push(p);
               }
             }
           }
         }
-        const domainList = Array.from(uniqueMap.values());
-        saveLocalVendors(domainList);
-        return domainList;
       }
-    } catch (err) {
-      console.warn('Backend vendors fetch failed, using fallback vendors:', err);
+      const domainList = Array.from(uniqueMap.values());
+      saveLocalVendors(domainList);
+      return domainList;
     }
+
     return getLocalVendors();
   },
 
@@ -272,7 +302,9 @@ export const vendorsApi = {
   ): Promise<VendorApprovalResponse> => {
     const sId = String(vendorId);
     try {
-      const response = await axiosInstance.post<VendorApprovalResponse>(`/admin/requests/${vendorId}/reject`);
+      const response = await axiosInstance.post<VendorApprovalResponse>(`/admin/requests/${vendorId}/reject`, {
+        reason: _reason || 'Incomplete documentation',
+      });
       return response.data;
     } catch {
       const pending = getLocalPendingVendors();

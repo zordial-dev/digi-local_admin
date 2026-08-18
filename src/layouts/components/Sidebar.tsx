@@ -74,23 +74,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       <div className="flex h-16 items-center justify-between px-5 border-b border-[#243A2D]">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-[10px] bg-[#C4A066] text-[#18281F] flex items-center justify-center font-serif font-bold text-base shadow-xs">
-              <Sparkles className="h-4 w-4 text-[#18281F]" />
+            <div className="h-9 w-9 rounded-[10px] bg-white border border-[#C4A066] p-0.5 flex items-center justify-center overflow-hidden shadow-xs">
+              <img src="/logo.png" alt="DigiLocal Logo" className="h-full w-full object-contain rounded-[8px]" />
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-bold text-[18px] text-[#F8F5EE] tracking-tight leading-none">
                 DigiLocal
               </span>
               <span className="font-sans text-[10px] uppercase tracking-widest text-[#C4A066] font-semibold mt-1">
-                HYPERLOCAL ADMIN
+                SUPER ADMIN
               </span>
             </div>
           </div>
         )}
 
         {isCollapsed && (
-          <div className="mx-auto h-9 w-9 rounded-[10px] bg-[#C4A066] text-[#18281F] flex items-center justify-center font-serif font-bold text-base shadow-xs">
-            DL
+          <div className="mx-auto h-9 w-9 rounded-[10px] bg-white border border-[#C4A066] p-0.5 flex items-center justify-center overflow-hidden shadow-xs">
+            <img src="/logo.png" alt="DigiLocal Logo" className="h-full w-full object-contain rounded-[8px]" />
           </div>
         )}
       </div>

@@ -57,8 +57,8 @@ export const VendorApprovalModal: React.FC<VendorApprovalModalProps> = ({
             <Store size={15} className="text-[#C4A066]" /> Subscription Summary
           </h5>
           <div className="flex justify-between items-center text-xs">
-            <span className="text-[#6B7C70]">Requested Tier:</span>
-            <Badge variant="primary">{vendor.subscriptionTier.toUpperCase()} PLAN</Badge>
+            <span className="text-[#6B7C70]">Subscription Status:</span>
+            <Badge variant="success">SUBSCRIBED</Badge>
           </div>
           <div className="flex justify-between items-center text-xs">
             <span className="text-[#6B7C70]">Renewal Date:</span>

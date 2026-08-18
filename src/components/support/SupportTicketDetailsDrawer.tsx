@@ -503,12 +503,22 @@ export const SupportTicketDetailsDrawer: React.FC<SupportTicketDetailsDrawerProp
                   </div>
                 )}
 
-                {(ticket.userType === 'vendor' || ticket.userType === 'user_vendor') ? (
+                {ticket.userType === 'user_vendor' ? (
+                  <div className="col-span-2 bg-[#EFE8D8]/90 p-2.5 rounded-xl border border-[#C4A066] flex items-center justify-between text-xs text-[#18281F]">
+                    <div className="flex items-center gap-2">
+                      <Store size={14} className="text-[#C4A066] shrink-0" />
+                      <span>
+                        <strong>Dual-Role Intake Perspective:</strong> Reporter is a <strong>Resident Customer &amp; Store Owner</strong>. {ticket.orderId ? 'Lodged as a Buyer purchasing from another store.' : 'Lodged for store management operations.'}
+                      </span>
+                    </div>
+                    <Badge variant="warning">{ticket.orderId ? '🛒 BUYER INTAKE' : '🏪 VENDOR INTAKE'}</Badge>
+                  </div>
+                ) : ticket.userType === 'vendor' ? (
                   <div className="col-span-2 bg-[#EFE8D8]/70 p-2.5 rounded-xl border border-[#C4A066]/40 flex items-center justify-between text-xs text-[#18281F]">
                     <div className="flex items-center gap-2">
                       <ShoppingBag size={14} className="text-[#C4A066] shrink-0" />
                       <span>
-                        <strong>Vendor Intake Channel:</strong> App created exclusively for vendors (Vendor Mobile App &amp; Vendor Web Portal). Vendors lodge complaints for anything on the platform.
+                        <strong>Vendor Intake Channel:</strong> App created exclusively for vendors (Vendor Mobile App &amp; Vendor Web Portal). Vendors lodge complaints for platform issues.
                       </span>
                     </div>
                     <Badge variant="primary">{ticket.source === 'mobile_app' ? 'VENDOR APP' : 'VENDOR PORTAL'}</Badge>
@@ -518,7 +528,7 @@ export const SupportTicketDetailsDrawer: React.FC<SupportTicketDetailsDrawerProp
                     <div className="flex items-center gap-2">
                       <Globe size={14} className="text-[#D97706] shrink-0" />
                       <span>
-                        <strong>User Intake Channel:</strong> Users <strong>cannot lodge complaints from an app</strong> as there is NO app for users. Intake is strictly Website for orders/vendors.
+                        <strong>User Intake Channel:</strong> Intake strictly from Website orders &amp; resident contact portal.
                       </span>
                     </div>
                     <Badge variant="warning">WEBSITE ONLY</Badge>

@@ -7,6 +7,7 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'X-Platform-Client': 'admin_dashboard',
   },
   withCredentials: true,
 });

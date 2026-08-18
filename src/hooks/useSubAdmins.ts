@@ -90,12 +90,39 @@ export const useDeleteSubAdmin = () => {
         description: 'Sub-admin account access has been revoked.',
       });
     },
-
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);
       addToast({
         type: 'error',
         title: 'Revocation Error',
+        description: appErr.message,
+      });
+    },
+  });
+};
+
+export const useToggleSubAdminStatus = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status?: 'active' | 'suspended' | 'blocked' }) =>
+      subAdminsApi.toggleSubAdminStatus(id, status),
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SUBADMIN_QUERY_KEYS.all });
+      addToast({
+        type: 'success',
+        title: 'Status Updated',
+        description: data.message,
+      });
+    },
+
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Status Update Error',
         description: appErr.message,
       });
     },

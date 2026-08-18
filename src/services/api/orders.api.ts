@@ -117,16 +117,77 @@ const MOCK_ORDERS_STORE: Record<string, OrderDetails> = {
   },
 };
 
+export const mapOrderDTOToDomain = (raw: any): OrderDetails => {
+  return {
+    id: String(raw.id || raw.order_id || raw.orderId || `o-${Date.now()}`),
+    orderId: raw.order_id || raw.orderId || String(raw.id || 'ORD-0000'),
+    status: raw.status || 'OUT_FOR_DELIVERY',
+    statusLabel: raw.status_label || raw.statusLabel || raw.status || 'DISPATCHED & IN-TRANSIT',
+    customerName: raw.customer_name || raw.customerName || 'Resident Customer',
+    customerPhone: raw.customer_phone || raw.customerPhone || '+91 98765 43210',
+    deliveryAddress: raw.delivery_address || raw.deliveryAddress || 'Anupam Society, Sector 4',
+    vendorName: raw.vendor_name || raw.vendorName || 'Partner Store',
+    vendorCategory: raw.vendor_category || raw.vendorCategory || 'Grocery & Produce',
+    items: Array.isArray(raw.items)
+      ? raw.items.map((item: any) => ({
+          id: String(item.id || item.item_id || Math.random()),
+          name: item.name || item.item_name || 'Product Item',
+          quantity: Number(item.quantity || 1),
+          price: Number(item.price || item.unit_price || 0),
+        }))
+      : [],
+    subtotal: Number(raw.subtotal ?? raw.sub_total ?? 0),
+    deliveryFee: Number(raw.delivery_fee ?? raw.deliveryFee ?? 0),
+    taxAmount: Number(raw.tax_amount ?? raw.taxAmount ?? 0),
+    discount: Number(raw.discount ?? 0),
+    totalAmount: Number(raw.total_amount ?? raw.totalAmount ?? raw.amount ?? 0),
+    paymentMethod: raw.payment_method || raw.paymentMethod || 'Razorpay UPI',
+    paymentRef: raw.payment_ref || raw.paymentRef || `pay_${Date.now()}`,
+    paymentStatus: raw.payment_status || raw.paymentStatus || 'PAID',
+    riderName: raw.rider_name || raw.riderName || 'Delivery Rider',
+    riderPhone: raw.rider_phone || raw.riderPhone || '+91 98123 77889',
+    riderDistanceKm: Number(raw.rider_distance_km ?? raw.riderDistanceKm ?? 0.8),
+    createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
+  };
+};
+
 export const ordersApi = {
   /**
-   * GET /api/orders/:orderId
+   * GET /admin/orders
+   */
+  getOrders: async (params?: { search?: string; status?: string; page?: number; limit?: number }): Promise<OrderDetails[]> => {
+    try {
+      let rawData: any;
+      try {
+        const response = await axiosInstance.get<any>('/admin/orders', { params });
+        rawData = response.data?.data || response.data?.orders || response.data;
+      } catch {
+        const response = await axiosInstance.get<any>('/orders', { params });
+        rawData = response.data?.data || response.data?.orders || response.data;
+      }
+
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        return rawData.map(mapOrderDTOToDomain);
+      }
+    } catch {}
+
+    return Object.values(MOCK_ORDERS_STORE);
+  },
+
+  /**
+   * GET /admin/orders/:orderId (also GET /orders/:orderId)
    */
   getOrderById: async (orderId: string): Promise<OrderDetails> => {
     try {
-      const response = await axiosInstance.get(`/orders/${orderId}`);
-      if (response.data) {
-        return response.data;
+      let raw: any;
+      try {
+        const response = await axiosInstance.get(`/admin/orders/${orderId}`);
+        raw = response.data?.data || response.data;
+      } catch {
+        const response = await axiosInstance.get(`/orders/${orderId}`);
+        raw = response.data?.data || response.data;
       }
+      if (raw) return mapOrderDTOToDomain(raw);
     } catch {}
 
     const mock = MOCK_ORDERS_STORE[orderId];

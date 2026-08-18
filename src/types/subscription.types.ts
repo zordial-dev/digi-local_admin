@@ -13,7 +13,9 @@ export interface Subscription {
   startDate: string;
   renewalDate: string;
   daysRemaining: number;
-  status: 'active' | 'expiring_soon' | 'expired';
+  status: 'active' | 'expiring_soon' | 'expired' | 'suspended' | 'blocked' | 'pending';
+  isVendorBlocked?: boolean;
+  vendorStatus?: string;
   payments: VendorPayment[];
 }
 

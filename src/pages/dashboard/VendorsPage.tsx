@@ -24,6 +24,7 @@ import { VendorApprovalModal } from '../../components/vendors/VendorApprovalModa
 import { VendorRejectModal } from '../../components/vendors/VendorRejectModal';
 import { VendorDetailsDrawer } from '../../components/vendors/VendorDetailsDrawer';
 import { VendorBlockConfirmModal } from '../../components/vendors/VendorBlockConfirmModal';
+import { PeopleDetailsDrawer } from '../../components/people/PeopleDetailsDrawer';
 
 type TabType = 'all' | 'pending' | 'active' | 'suspended' | 'expired';
 type VendorSortOption = 'name-asc' | 'name-desc' | 'revenue-desc' | 'revenue-asc' | 'orders-desc' | 'newest' | 'oldest';
@@ -70,44 +71,10 @@ export const VendorsPage: React.FC = () => {
   const [rejectingVendor, setRejectingVendor] = useState<Vendor | null>(null);
   const [blockingVendor, setBlockingVendor] = useState<Vendor | null>(null);
   const [selectedDrawerVendor, setSelectedDrawerVendor] = useState<Vendor | null>(null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
 
-  // Set of blocked/suspended society IDs & Names
-  const blockedSocietyIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of societies) {
-      if (s.status === 'suspended' || s.status === 'pending') {
-        set.add(String(s.id));
-      }
-    }
-    return set;
-  }, [societies]);
-
-  const blockedSocietyNames = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of societies) {
-      if (s.status === 'suspended' || s.status === 'pending') {
-        set.add(s.name.trim().toLowerCase());
-      }
-    }
-    return set;
-  }, [societies]);
-
-  // Dynamically override vendor status to 'suspended' if its assigned society is blocked/suspended
-  const allVendors = useMemo(() => {
-    return rawAllVendors.map((v) => {
-      const isSocietyBlocked =
-        (v.societyId && blockedSocietyIds.has(String(v.societyId))) ||
-        (v.societyName && blockedSocietyNames.has(v.societyName.trim().toLowerCase()));
-
-      if (isSocietyBlocked) {
-        return {
-          ...v,
-          status: 'suspended' as VendorStatus,
-        };
-      }
-      return v;
-    });
-  }, [rawAllVendors, blockedSocietyIds, blockedSocietyNames]);
+  // Active vendors dataset directly from backend status
+  const allVendors = rawAllVendors;
 
   // Tab filtering logic
   const activeCount = allVendors.filter((v) => v.status === 'active').length;
@@ -224,12 +191,15 @@ export const VendorsPage: React.FC = () => {
       ),
     },
     {
-      header: 'Subscription Tier',
-      cell: (vendor) => (
-        <Badge variant={vendor.subscriptionTier === 'pro' ? 'primary' : 'info'}>
-          {vendor.subscriptionTier.toUpperCase()}
-        </Badge>
-      ),
+      header: 'Subscription',
+      cell: (vendor) => {
+        const isSub = vendor.status === 'active' || vendor.subscriptionTier === 'subscribed';
+        return (
+          <Badge variant={isSub ? 'success' : 'warning'}>
+            {isSub ? 'SUBSCRIBED' : 'NOT SUBSCRIBED'}
+          </Badge>
+        );
+      },
     },
     {
       header: 'Status',
@@ -349,10 +319,9 @@ export const VendorsPage: React.FC = () => {
             value={selectedTier}
             onChange={(e) => setSelectedTier(e.target.value)}
           >
-            <option value="">All Tiers</option>
-            <option value="pro">Pro Plan</option>
-            <option value="enterprise">Enterprise Plan</option>
-            <option value="free">Free Tier</option>
+            <option value="">All Subscriptions</option>
+            <option value="subscribed">Subscribed</option>
+            <option value="unsubscribed">Not Subscribed</option>
           </select>
 
           <Input
@@ -417,7 +386,15 @@ export const VendorsPage: React.FC = () => {
         isOpen={!!selectedDrawerVendor}
         onClose={() => setSelectedDrawerVendor(null)}
         onToggleBlock={(v) => setBlockingVendor(v)}
+        onSelectOwner={(ownerName) => setSelectedOwnerId(ownerName)}
         vendor={selectedDrawerVendor}
+      />
+
+      {/* Owner Profile CRM Drawer */}
+      <PeopleDetailsDrawer
+        isOpen={!!selectedOwnerId}
+        onClose={() => setSelectedOwnerId(null)}
+        personId={selectedOwnerId}
       />
     </div>
   );

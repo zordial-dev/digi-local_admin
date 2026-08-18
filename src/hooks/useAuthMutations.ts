@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { useToast } from '../context/ToastContext';
 import type { AdminLoginRequest, VendorLoginRequest } from '../types/auth.types';
@@ -8,6 +9,7 @@ export const useAdminLoginMutation = () => {
   const { loginAdmin } = useAuth();
   const { addToast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (payload: AdminLoginRequest) => loginAdmin(payload),
@@ -18,6 +20,7 @@ export const useAdminLoginMutation = () => {
         title: 'Authentication Successful',
         description: 'Welcome back to DigiLocal Enterprise Admin.',
       });
+      navigate('/dashboard/overview', { replace: true });
     },
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);
@@ -34,6 +37,7 @@ export const useVendorLoginMutation = () => {
   const { loginVendor } = useAuth();
   const { addToast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (payload: VendorLoginRequest) => loginVendor(payload),
@@ -44,6 +48,7 @@ export const useVendorLoginMutation = () => {
         title: 'Sign In Successful',
         description: 'Welcome back to your vendor portal.',
       });
+      navigate('/dashboard/overview', { replace: true });
     },
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);

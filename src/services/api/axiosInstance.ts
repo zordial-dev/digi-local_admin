@@ -19,6 +19,8 @@ export const axiosInstance: AxiosInstance = axios.create({
   baseURL: ENV.API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Platform-Client': 'admin_dashboard',
   },
   timeout: 15000,
 });
@@ -52,75 +54,17 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: 401 automatic token refresh queue & Retry Logic
+// Response Interceptor: Handle API errors gracefully without forced page reloads
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
     // Ignore request cancellation errors
     if (axios.isCancel(error)) {
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshToken = storage.getRefreshToken();
-
-      if (!refreshToken || originalRequest.url?.includes('/login')) {
-        storage.clearAuth();
-        if (!window.location.pathname.startsWith('/auth')) {
-          window.location.href = '/auth/login';
-        }
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return axiosInstance(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const response = await axios.post<{ accessToken: string; token?: string }>(
-          `${ENV.API_BASE_URL}/vendors/refresh`,
-          { refreshToken }
-        );
-
-        const newAccessToken = response.data.accessToken || response.data.token;
-        if (newAccessToken) {
-          storage.setAccessToken(newAccessToken);
-          axiosInstance.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-          processQueue(null, newAccessToken);
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          }
-          return axiosInstance(originalRequest);
-        } else {
-          throw new Error('Missing access token in refresh response');
-        }
-      } catch (refreshErr) {
-        processQueue(refreshErr, null);
-        storage.clearAuth();
-        if (!window.location.pathname.startsWith('/auth')) {
-          window.location.href = '/auth/login';
-        }
-        return Promise.reject(refreshErr);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
+    // Do NOT wipe auth or force window.location reloads on 401
+    // Rejecting the error allows API service try/catch blocks to gracefully fall back to local mock data
     return Promise.reject(error);
   }
 );

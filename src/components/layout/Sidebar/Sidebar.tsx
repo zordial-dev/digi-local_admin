@@ -69,19 +69,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <div className="brand-logo-container">
               <img
-                src={config?.platform_logo || '/logo.png'}
-                alt="Platform Logo"
+                src="/logo.png"
+                alt="DigiLocal Logo"
                 className="brand-logo-img"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/logo.png';
-                }}
               />
             </div>
             <div className="brand-text">
-              <span className="brand-name">{config?.platform_name || 'DigiLocal'}</span>
-              <span className="brand-badge">
-                {isSuperAdmin ? 'Super Admin' : 'Sub-Admin'}
-              </span>
+              <span className="brand-name">DigiLocal</span>
+              <span className="brand-badge">SUPER ADMIN</span>
             </div>
           </div>
 

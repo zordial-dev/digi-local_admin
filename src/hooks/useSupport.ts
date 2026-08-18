@@ -114,12 +114,144 @@ export const useCreateSupportTicket = () => {
         description: `Support Ticket ${data.ticketNumber} logged successfully.`,
       });
     },
-
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);
       addToast({
         type: 'error',
         title: 'Ticket Creation Failed',
+        description: appErr.message,
+      });
+    },
+  });
+};
+
+export const useEscalateTicket = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (ticketId: string | number) => supportApi.escalateTicket(ticketId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      addToast({
+        type: 'warning',
+        title: 'Priority Escalated',
+        description: `Ticket ${data.ticketNumber} priority escalated to ${data.priority.toUpperCase()}`,
+      });
+    },
+    onError: (error: any) => {
+      addToast({
+        type: 'error',
+        title: 'Escalation Blocked',
+        description: error.message || 'Ticket is already at highest priority level (URGENT).',
+      });
+    },
+  });
+};
+
+export const useDeescalateTicket = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (ticketId: string | number) => supportApi.deescalateTicket(ticketId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      addToast({
+        type: 'info',
+        title: 'Priority De-escalated',
+        description: `Ticket ${data.ticketNumber} priority lowered to ${data.priority.toUpperCase()}`,
+      });
+    },
+    onError: (error: any) => {
+      addToast({
+        type: 'error',
+        title: 'De-escalation Blocked',
+        description: error.message || 'Ticket is already at lowest priority level (LOW).',
+      });
+    },
+  });
+};
+
+export const useMergeTickets = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ ticketId, targetMaster }: { ticketId: string | number; targetMaster: string }) =>
+      supportApi.mergeTickets(ticketId, targetMaster),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      addToast({
+        type: 'success',
+        title: 'Tickets Merged',
+        description: data.message || `Merged ticket into ${data.targetMaster}`,
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Merge Failed',
+        description: appErr.message,
+      });
+    },
+  });
+};
+
+export const useUnmergeTickets = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ ticketId, childTicket }: { ticketId: string | number; childTicket: string }) =>
+      supportApi.unmergeTickets(ticketId, childTicket),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      addToast({
+        type: 'info',
+        title: 'Ticket Unmerged',
+        description: data.message || `Unmerged child ticket ${data.childTicket}`,
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Unmerge Failed',
+        description: appErr.message,
+      });
+    },
+  });
+};
+
+export const useManageFollowers = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      followerName,
+      action,
+    }: {
+      ticketId: string | number;
+      followerName: string;
+      action: 'add' | 'remove';
+    }) => supportApi.manageFollowers(ticketId, followerName, action),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      addToast({
+        type: 'success',
+        title: 'Followers Updated',
+        description: data.message,
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Follower Update Failed',
         description: appErr.message,
       });
     },

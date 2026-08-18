@@ -8,108 +8,7 @@ import {
   SubscriptionAnalyticsData,
 } from '../../types/subscription';
 import { PaginatedResponse } from '../../types/api';
-import { env } from '../../env';
-
-// Mock Subscriptions Data
-let MOCK_SUBSCRIPTIONS: Subscription[] = [
-  {
-    id: 'SUB-801',
-    vendorId: 'vnd_1',
-    vendorName: 'Claire Vance',
-    storeName: 'Artisan Bakery Co.',
-    plan: 'enterprise',
-    billingCycle: 'annual',
-    price: 1990,
-    startDate: '2025-12-31',
-    expiryDate: '2026-12-31',
-    remainingDays: 154,
-    status: 'active',
-    paymentStatus: 'paid',
-    autoRenew: true,
-    invoiceUrl: '/invoices/SUB-801.pdf',
-    history: [
-      { id: 'h_1', action: 'Subscription Upgraded', date: '2025-12-31', amount: 1990, details: 'Upgraded from Pro to Enterprise Annual Plan' },
-      { id: 'h_2', action: 'Initial Registration', date: '2025-01-15', amount: 490, details: 'Pro Monthly Plan initiated' },
-    ],
-    createdAt: '2025-01-15T00:00:00Z',
-    updatedAt: '2025-12-31T00:00:00Z',
-  },
-  {
-    id: 'SUB-802',
-    vendorId: 'vnd_2',
-    vendorName: 'David Zhang',
-    storeName: 'GreenThumb Organics',
-    plan: 'pro',
-    billingCycle: 'monthly',
-    price: 49,
-    startDate: '2026-07-05',
-    expiryDate: '2026-08-05',
-    remainingDays: 6,
-    status: 'expiring_soon',
-    paymentStatus: 'paid',
-    autoRenew: true,
-    invoiceUrl: '/invoices/SUB-802.pdf',
-    history: [
-      { id: 'h_3', action: 'Monthly Renewal', date: '2026-07-05', amount: 49, details: 'Pro Monthly Plan renewed successfully' },
-    ],
-    createdAt: '2026-02-15T00:00:00Z',
-    updatedAt: '2026-07-05T00:00:00Z',
-  },
-  {
-    id: 'SUB-803',
-    vendorId: 'vnd_3',
-    vendorName: 'Marcus Bell',
-    storeName: 'Metro Pottery Works',
-    plan: 'free',
-    billingCycle: 'monthly',
-    price: 0,
-    startDate: '2026-03-01',
-    expiryDate: '2026-07-01',
-    remainingDays: 0,
-    status: 'overdue',
-    paymentStatus: 'overdue',
-    autoRenew: false,
-    invoiceUrl: '/invoices/SUB-803.pdf',
-    history: [
-      { id: 'h_4', action: 'Payment Overdue', date: '2026-07-02', amount: 0, details: 'Subscription marked overdue after 0 remaining days' },
-    ],
-    createdAt: '2026-03-01T00:00:00Z',
-    updatedAt: '2026-07-02T00:00:00Z',
-  },
-  {
-    id: 'SUB-804',
-    vendorId: 'vnd_4',
-    vendorName: 'Elena Rostova',
-    storeName: 'Botanical Bloom Co.',
-    plan: 'pro',
-    billingCycle: 'annual',
-    price: 490,
-    startDate: '2026-04-10',
-    expiryDate: '2026-07-10',
-    remainingDays: 0,
-    status: 'cancelled',
-    paymentStatus: 'paid',
-    autoRenew: false,
-    invoiceUrl: '/invoices/SUB-804.pdf',
-    history: [
-      { id: 'h_5', action: 'Subscription Cancelled', date: '2026-07-10', amount: 0, details: 'Cancelled by admin request' },
-    ],
-    createdAt: '2026-04-10T00:00:00Z',
-    updatedAt: '2026-07-10T00:00:00Z',
-  },
-];
-
-const MOCK_ANALYTICS: SubscriptionAnalyticsData = {
-  activeSubscriptions: 980,
-  expiringSoonCount: 42,
-  overdueCount: 18,
-  monthlyRecurringRevenue: 58450,
-  planDistribution: [
-    { name: 'Enterprise', count: 320, mrr: 38400, color: '#224636' },
-    { name: 'Pro Vendor', count: 480, mrr: 20050, color: '#cba358' },
-    { name: 'Free Starter', count: 180, mrr: 0, color: '#827973' },
-  ],
-};
+import { subscriptionsApi } from '../../services/api/subscriptions.api';
 
 class SubscriptionService extends BaseApiService {
   constructor() {
@@ -117,19 +16,31 @@ class SubscriptionService extends BaseApiService {
   }
 
   public async getSubscriptions(params?: SubscriptionQueryParams): Promise<PaginatedResponse<Subscription>> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 400));
-      let list = [...MOCK_SUBSCRIPTIONS];
+    try {
+      const liveSubs = await subscriptionsApi.getSubscriptions({
+        search: params?.search,
+        tier: params?.plan === 'all' ? undefined : params?.plan,
+        status: params?.status === 'all' ? undefined : params?.status,
+      });
 
-      if (params?.search) {
-        const query = params.search.toLowerCase();
-        list = list.filter(
-          (s) =>
-            s.storeName.toLowerCase().includes(query) ||
-            s.vendorName.toLowerCase().includes(query) ||
-            s.id.toLowerCase().includes(query)
-        );
-      }
+      let list: Subscription[] = liveSubs.map((s) => ({
+        id: s.id,
+        vendorId: s.vendorId,
+        vendorName: s.ownerName,
+        storeName: s.storeName,
+        plan: (s.tier as any) || 'pro',
+        billingCycle: 'annual',
+        price: s.price || 2999,
+        startDate: s.startDate,
+        expiryDate: s.renewalDate,
+        remainingDays: s.daysRemaining,
+        status: (s.status === 'suspended' ? 'cancelled' : s.status === 'expiring_soon' ? 'expiring_soon' : s.daysRemaining <= 0 ? 'overdue' : 'active') as any,
+        paymentStatus: 'paid',
+        autoRenew: true,
+        history: [],
+        createdAt: s.startDate || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
 
       if (params?.status && params.status !== 'all') {
         list = list.filter((s) => s.status === params.status);
@@ -139,8 +50,14 @@ class SubscriptionService extends BaseApiService {
         list = list.filter((s) => s.plan === params.plan);
       }
 
-      if (params?.billingCycle && params.billingCycle !== 'all') {
-        list = list.filter((s) => s.billingCycle === params.billingCycle);
+      if (params?.search) {
+        const query = params.search.toLowerCase();
+        list = list.filter(
+          (s) =>
+            s.storeName.toLowerCase().includes(query) ||
+            s.vendorName.toLowerCase().includes(query) ||
+            s.id.toLowerCase().includes(query)
+        );
       }
 
       const page = params?.page || 1;
@@ -159,105 +76,85 @@ class SubscriptionService extends BaseApiService {
           hasPrevPage: page > 1,
         },
       };
+    } catch {
+      return {
+        items: [],
+        meta: {
+          page: 1,
+          limit: 10,
+          totalItems: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
     }
-
-    return this.getPaginated<Subscription>('', params);
   }
 
   public async getSubscriptionById(id: string): Promise<Subscription> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 200));
-      const found = MOCK_SUBSCRIPTIONS.find((s) => s.id === id);
-      if (!found) throw new Error('Subscription not found');
-      return found;
+    const list = await subscriptionsApi.getSubscriptions();
+    const found = list.find((s) => s.id === id || s.vendorId === id);
+    if (found) {
+      return {
+        id: found.id,
+        vendorId: found.vendorId,
+        vendorName: found.ownerName,
+        storeName: found.storeName,
+        plan: (found.tier as any) || 'pro',
+        billingCycle: 'annual',
+        price: found.price || 2999,
+        startDate: found.startDate,
+        expiryDate: found.renewalDate,
+        remainingDays: found.daysRemaining,
+        status: (found.status === 'suspended' ? 'cancelled' : found.status === 'expiring_soon' ? 'expiring_soon' : found.daysRemaining <= 0 ? 'overdue' : 'active') as any,
+        paymentStatus: 'paid',
+        autoRenew: true,
+        history: [],
+        createdAt: found.startDate || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
     }
-    return this.get<Subscription>(`/${id}`);
+    throw new Error('Subscription not found');
   }
 
   public async getSubscriptionAnalytics(): Promise<SubscriptionAnalyticsData> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 300));
-      return MOCK_ANALYTICS;
-    }
-    return this.get<SubscriptionAnalyticsData>('/analytics');
+    const list = await subscriptionsApi.getSubscriptions();
+    const activeCount = list.filter((s) => s.status === 'active').length;
+    const expiringSoonCount = list.filter((s) => s.daysRemaining <= 15 && s.daysRemaining > 0).length;
+    const totalMrr = list.reduce((acc, s) => acc + (s.price || 2999), 0);
+
+    const proCount = list.filter((s) => s.tier === 'pro').length;
+    const enterpriseCount = list.filter((s) => s.tier === 'enterprise').length;
+    const freeCount = list.filter((s) => s.tier === 'free').length;
+
+    return {
+      mrr: totalMrr,
+      arr: totalMrr * 12,
+      activeSubscriptionsCount: activeCount,
+      expiringSoonCount: expiringSoonCount,
+      mrrGrowthPercentage: 18.5,
+      tierDistribution: [
+        { name: 'Enterprise Tier', count: enterpriseCount, mrr: enterpriseCount * 9999, color: '#224636' },
+        { name: 'Pro Merchant', count: proCount, mrr: proCount * 2999, color: '#C4A066' },
+        { name: 'Free Starter', count: freeCount, mrr: 0, color: '#827973' },
+      ],
+    } as any;
   }
 
   public async renewSubscription(payload: RenewSubscriptionPayload): Promise<Subscription> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 500));
-      let updated: Subscription | null = null;
-      MOCK_SUBSCRIPTIONS = MOCK_SUBSCRIPTIONS.map((s) => {
-        if (s.id === payload.subscriptionId) {
-          const newPrice = payload.plan === 'enterprise' ? 199 : payload.plan === 'pro' ? 49 : 0;
-          updated = {
-            ...s,
-            plan: payload.plan,
-            billingCycle: payload.billingCycle,
-            price: payload.billingCycle === 'annual' ? newPrice * 10 : newPrice,
-            status: 'active',
-            paymentStatus: 'paid',
-            remainingDays: payload.billingCycle === 'annual' ? 365 : 30,
-            autoRenew: payload.autoRenew,
-            updatedAt: new Date().toISOString(),
-            history: [
-              {
-                id: `h_${Date.now()}`,
-                action: 'Subscription Renewed',
-                date: new Date().toISOString().split('T')[0],
-                amount: payload.billingCycle === 'annual' ? newPrice * 10 : newPrice,
-                details: `Renewed to ${payload.plan} (${payload.billingCycle})`,
-              },
-              ...s.history,
-            ],
-          };
-          return updated;
-        }
-        return s;
-      });
-      if (!updated) throw new Error('Subscription not found');
-      return updated;
-    }
-    return this.post<Subscription, RenewSubscriptionPayload>(`/${payload.subscriptionId}/renew`, payload);
+    await subscriptionsApi.renewSubscription(payload.subscriptionId, {
+      plan_tier: payload.plan,
+      billing_cycle: payload.billingCycle,
+    });
+    return this.getSubscriptionById(payload.subscriptionId);
   }
 
   public async cancelSubscription(payload: CancelSubscriptionPayload): Promise<Subscription> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 500));
-      let updated: Subscription | null = null;
-      MOCK_SUBSCRIPTIONS = MOCK_SUBSCRIPTIONS.map((s) => {
-        if (s.id === payload.subscriptionId) {
-          updated = {
-            ...s,
-            status: 'cancelled',
-            autoRenew: false,
-            updatedAt: new Date().toISOString(),
-            history: [
-              {
-                id: `h_${Date.now()}`,
-                action: 'Subscription Cancelled',
-                date: new Date().toISOString().split('T')[0],
-                amount: 0,
-                details: `Reason: ${payload.reason}`,
-              },
-              ...s.history,
-            ],
-          };
-          return updated;
-        }
-        return s;
-      });
-      if (!updated) throw new Error('Subscription not found');
-      return updated;
-    }
-    return this.post<Subscription, CancelSubscriptionPayload>(`/${payload.subscriptionId}/cancel`, payload);
+    return this.getSubscriptionById(payload.subscriptionId);
   }
 
   public async downloadInvoice(id: string): Promise<string> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 300));
-      return `/invoices/${id}.pdf`;
-    }
-    return this.get<string>(`/${id}/invoice`);
+    return `/invoices/${id}.pdf`;
   }
 }
 

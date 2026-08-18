@@ -7,7 +7,7 @@ export interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
   size?: 'md' | 'lg' | 'xl';
 }

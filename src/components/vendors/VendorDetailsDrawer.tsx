@@ -4,12 +4,13 @@ import { Badge } from '../common/Badge/Badge';
 import { Button } from '../common/Button/Button';
 import type { Vendor } from '../../types/vendor.types';
 import { formatCurrency, formatDate, getStatusBadgeVariant } from '../../utils/formatters.utils';
-import { Store, CreditCard, Mail, Phone, MapPin, ShoppingBag } from 'lucide-react';
+import { Store, CreditCard, Mail, Phone, MapPin, ShoppingBag, User } from 'lucide-react';
 
 export interface VendorDetailsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onToggleBlock?: (vendor: Vendor) => void;
+  onSelectOwner?: (ownerName: string, vendor: Vendor) => void;
   vendor?: Vendor | null;
 }
 
@@ -17,6 +18,7 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
   isOpen,
   onClose,
   onToggleBlock,
+  onSelectOwner,
   vendor,
 }) => {
   if (!vendor) return null;
@@ -30,7 +32,19 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={vendor.storeName}
-      subtitle={`Owner: ${vendor.ownerName}`}
+      subtitle={
+        <span className="flex items-center gap-1.5 text-xs text-amber-200/90 font-medium">
+          Owner:
+          <button
+            type="button"
+            onClick={() => onSelectOwner?.(vendor.ownerName, vendor)}
+            className="font-bold text-[#C4A066] hover:text-white underline cursor-pointer transition-all inline-flex items-center gap-0.5"
+            title="Click to view Owner profile details"
+          >
+            {vendor.ownerName} ↗
+          </button>
+        </span>
+      }
     >
       <div className="flex flex-col gap-5 p-1">
         {/* Profile Card */}
@@ -42,6 +56,18 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
           />
           <div className="flex-1 min-w-0">
             <h4 className="text-base font-bold text-[#18281F] truncate">{vendor.storeName}</h4>
+            <div className="flex items-center gap-1.5 mt-0.5 text-xs">
+              <User size={12} className="text-[#C4A066]" />
+              <span className="text-[#6B7C70]">Owner:</span>
+              <button
+                type="button"
+                onClick={() => onSelectOwner?.(vendor.ownerName, vendor)}
+                className="font-bold text-[#18281F] hover:text-[#C4A066] underline cursor-pointer transition-colors"
+                title="Click to view Owner details"
+              >
+                {vendor.ownerName}
+              </button>
+            </div>
             <p className="text-xs text-[#6B7C70] flex items-center gap-1 mt-0.5">
               <Mail size={12} className="text-[#C4A066]" /> {vendor.email}
             </p>
@@ -117,9 +143,9 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
             <Store size={14} className="text-[#C4A066]" /> Subscription Summary
           </h5>
           <div className="flex justify-between items-center text-sm border-b border-[#E4DCC9]/60 pb-2">
-            <span className="text-[#6B7C70] font-medium">Active Tier:</span>
-            <Badge variant={vendor.subscriptionTier === 'enterprise' ? 'primary' : 'success'}>
-              {vendor.subscriptionTier.toUpperCase()} PLAN
+            <span className="text-[#6B7C70] font-medium">Subscription Status:</span>
+            <Badge variant={vendor.status === 'active' || vendor.subscriptionTier === 'subscribed' ? 'success' : 'warning'}>
+              {vendor.status === 'active' || vendor.subscriptionTier === 'subscribed' ? 'SUBSCRIBED' : 'NOT SUBSCRIBED'}
             </Badge>
           </div>
           <div className="flex justify-between items-center text-sm">

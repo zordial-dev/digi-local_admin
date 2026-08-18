@@ -3,6 +3,7 @@ import { StatCard } from '../common/StatCard/StatCard';
 import { Button } from '../common/Button/Button';
 import { Badge } from '../common/Badge/Badge';
 import { useToast } from '../../context/ToastContext';
+import { usePeopleList } from '../../hooks/usePeopleList';
 import {
   AreaChart,
   Area,
@@ -100,7 +101,10 @@ const RETENTION_PIE_DATA = [
 
 export const UserAnalyticsDashboard: React.FC = () => {
   const { addToast } = useToast();
+  const { data: people = [] } = usePeopleList();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+
+  const totalRegistered = people.length || 15;
 
   // Export CSV
   const handleExportCSV = () => {
@@ -112,8 +116,8 @@ export const UserAnalyticsDashboard: React.FC = () => {
       ['Refund Rate', '1.1%', '< 2.0% SLA'],
       ['30-Day User Retention', '88.5%', '> 85.0% Target'],
       ['Daily Active Users (DAU)', '1,020', 'Peak High'],
-      ['Monthly Active Users (MAU)', '2,680', 'Peak High'],
-      ['Total Registered Directory Users', '2,920', 'All Time'],
+      ['Monthly Active Users (MAU)', String(totalRegistered), 'Live Backend Users'],
+      ['Total Registered Directory Users', String(totalRegistered), 'All Time'],
     ];
 
     const csvContent = csvRows.map((r) => r.join(',')).join('\n');

@@ -7,7 +7,7 @@ import { usePersonDetails, useFlagPerson, useUpdatePersonStatus } from '../../ho
 import { useTickets } from '../../hooks/useSupport';
 import { useToast } from '../../context/ToastContext';
 import { SupportTicketStatusBadge } from '../support/SupportTicketStatusBadge';
-import { formatDate } from '../../utils/formatters.utils';
+import { formatDate, formatDateTime } from '../../utils/formatters.utils';
 import {
   User,
   Store,
@@ -22,6 +22,7 @@ import {
   History,
   ShieldAlert,
   Package,
+  Clock,
 } from 'lucide-react';
 
 export interface PeopleDetailsDrawerProps {
@@ -317,6 +318,16 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                     <span className="font-bold text-[#18281F] uppercase">{person.personType === 'user_vendor' ? 'USER & VENDOR DUAL ROLE' : person.personType.replace('_', ' ')}</span>
                   </div>
                 </div>
+
+                <div className="p-3 bg-[#FAF9F6] border border-[#E4DCC9] rounded-xl flex items-center gap-2.5 col-span-2">
+                  <Clock size={16} className="text-[#C4A066]" />
+                  <div>
+                    <span className="text-[#6B7C70] block text-[10px] uppercase font-bold">Registration Timestamp (Account Created)</span>
+                    <span className="font-bold text-[#18281F] font-mono">
+                      {formatDateTime(person.createdAt)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Dual Role Vendor Store Section */}
@@ -378,9 +389,11 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
             <div className="flex flex-col gap-3 text-xs animate-fadeIn">
               <div className="p-3 bg-[#FAF9F6] border border-[#E4DCC9] rounded-xl flex items-center justify-between">
                 <span className="font-bold text-[#18281F] flex items-center gap-1.5">
-                  <ShoppingBag size={15} className="text-[#C4A066]" /> Order &amp; Purchasing History Log
+                  <ShoppingBag size={15} className="text-[#C4A066]" /> Personal Purchases &amp; Orders Log
                 </span>
-                <span className="text-[#6B7C70] font-mono">Total Completed: {person.totalOrdersCount || orderHistory.length}</span>
+                <span className="text-[11px] font-bold px-2 py-0.5 bg-[#FEF3C7] text-[#D97706] border border-[#F59E0B]/40 rounded-lg">
+                  🛒 PURCHASES AT OTHER STORES
+                </span>
               </div>
 
               {orderHistory.map((ord) => (

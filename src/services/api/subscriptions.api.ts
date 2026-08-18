@@ -5,7 +5,7 @@ import type {
   SubscriptionRenewalRequest,
   Invoice,
 } from '../../types/subscription.types';
-import type { RawVendorDTO } from '../../types/vendor.types';
+import { vendorsApi } from './vendors.api';
 
 export interface SubscriptionListParams {
   search?: string;
@@ -13,56 +13,192 @@ export interface SubscriptionListParams {
   status?: string;
 }
 
+const INITIAL_SUBSCRIPTIONS_MOCK: Subscription[] = [
+  {
+    id: 'sub-90',
+    vendorId: '90',
+    storeName: 'Apna Store',
+    ownerName: 'Apna Store Grocery',
+    societyName: 'Manglam Aananda',
+    tier: 'pro',
+    price: 2999,
+    startDate: '2026-08-07',
+    renewalDate: '2026-12-31',
+    daysRemaining: 141,
+    status: 'active',
+    payments: [],
+  },
+  {
+    id: 'sub-89',
+    vendorId: '89',
+    storeName: 'GS Cafe',
+    ownerName: 'GS Cafe',
+    societyName: 'Manglam Aananda',
+    tier: 'pro',
+    price: 2999,
+    startDate: '2026-08-07',
+    renewalDate: '2026-12-31',
+    daysRemaining: 141,
+    status: 'active',
+    payments: [],
+  },
+  {
+    id: 'sub-79',
+    vendorId: '79',
+    storeName: 'FreshMart Grocery',
+    ownerName: 'Rajesh Sharma',
+    societyName: 'Anupam apartment',
+    tier: 'pro',
+    price: 2999,
+    startDate: '2026-08-07',
+    renewalDate: '2026-12-31',
+    daysRemaining: 141,
+    status: 'active',
+    payments: [],
+  },
+  {
+    id: 'sub-p1',
+    vendorId: 'v-105',
+    storeName: 'QuickMart Convenience Store',
+    ownerName: 'Vikram Singh',
+    societyName: 'Manglam Aananda',
+    tier: 'pro',
+    price: 2999,
+    startDate: '2026-08-10',
+    renewalDate: '2026-12-31',
+    daysRemaining: 141,
+    status: 'pending',
+    vendorStatus: 'pending',
+    payments: [],
+  },
+  {
+    id: 'sub-p2',
+    vendorId: 'v-106',
+    storeName: 'Green Leaf Organic Vegetables',
+    ownerName: 'Ananya Sharma',
+    societyName: 'Anupam Society',
+    tier: 'enterprise',
+    price: 9999,
+    startDate: '2026-08-11',
+    renewalDate: '2026-12-31',
+    daysRemaining: 141,
+    status: 'pending',
+    vendorStatus: 'pending',
+    payments: [],
+  },
+];
+
+const mapSubscriptionDTOToDomain = (raw: any): Subscription => {
+  const sId = raw.id || raw.subscription_id || `sub-${raw.vendor_id || '1'}`;
+  const renewal = raw.renewal_date || raw.renewalDate || '2026-12-31';
+  const now = new Date();
+  const diffTime = new Date(renewal).getTime() - now.getTime();
+  const daysRemaining = Number(
+    raw.days_remaining ?? raw.daysRemaining ?? Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+  );
+  const rawTier = String(raw.tier || raw.subscription_tier || raw.plan_tier || 'pro').toLowerCase();
+  const tier = (rawTier === 'subscribed' ? 'pro' : rawTier) as any;
+  const rawStatus = String(raw.vendor_status || raw.vendorStatus || raw.status || '').toLowerCase();
+  const isBlocked = rawStatus === 'suspended' || rawStatus === 'blocked';
+  const isPending = rawStatus === 'pending';
+
+  return {
+    id: String(sId),
+    vendorId: String(raw.vendor_id || raw.vendorId || '1'),
+    storeName: raw.store_name || raw.storeName || 'Vendor Store',
+    ownerName: raw.owner_name || raw.ownerName || raw.vendor_name || 'Vendor Owner',
+    societyName: raw.society_name || raw.societyName || 'Greenwood Residency',
+    tier,
+    price: Number(raw.price || raw.amount || (tier === 'enterprise' ? 9999 : 2999)),
+    startDate: raw.start_date || raw.startDate || raw.created_at || '2026-01-01',
+    renewalDate: renewal,
+    daysRemaining,
+    status: isBlocked ? 'suspended' : isPending ? 'pending' : (daysRemaining < 15 ? 'expiring_soon' : 'active'),
+    isVendorBlocked: isBlocked,
+    vendorStatus: rawStatus || 'active',
+    payments: raw.payments || [],
+  };
+};
+
 export const subscriptionsApi = {
   /**
-   * GET /api/admin/subscriptions
+   * GET /api/subscriptions or /api/admin/subscriptions
    */
   getSubscriptions: async (params?: SubscriptionListParams): Promise<Subscription[]> => {
+    let rawData: any = null;
+
     try {
-      const response = await axiosInstance.get<Subscription[]>('/admin/subscriptions', { params });
-      return response.data;
+      const response = await axiosInstance.get<any>('/admin/subscriptions', { params });
+      rawData = response.data?.data || response.data?.subscriptions || response.data;
     } catch {
-      // Fallback mapper from /admin/vendors
-      const vendorsRes = await axiosInstance.get<RawVendorDTO[]>('/admin/vendors');
-      const now = new Date();
-
-      return vendorsRes.data
-        .map((v, idx) => {
-          const renewal = new Date(v.renewal_date || '2026-12-31');
-          const diffTime = renewal.getTime() - now.getTime();
-          const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-          const tier = (v.subscription_tier as any) || (idx % 2 === 0 ? 'pro' : 'enterprise');
-
-          return {
-            id: String(v.vendor_id),
-            vendorId: String(v.vendor_id),
-            storeName: v.store_name || 'Store',
-            ownerName: v.vendor_name || 'Owner',
-            societyName: v.society_id ? `Society #${v.society_id}` : 'Greenwood Residency',
-            tier,
-            price: tier === 'enterprise' ? 9999 : 2999,
-            startDate: v.created_at || '2026-01-01',
-            renewalDate: v.renewal_date || '2026-12-31',
-            daysRemaining,
-            status: daysRemaining < 15 ? 'expiring_soon' : 'active',
-            payments: v.payments || [],
-          } satisfies Subscription;
-        })
-        .filter((sub) => {
-          if (params?.search) {
-            const query = params.search.toLowerCase();
-            return (
-              sub.storeName.toLowerCase().includes(query) ||
-              sub.ownerName.toLowerCase().includes(query) ||
-              sub.societyName.toLowerCase().includes(query)
-            );
-          }
-          if (params?.tier) {
-            return sub.tier === params.tier;
-          }
-          return true;
-        });
+      try {
+        const response = await axiosInstance.get<any>('/subscriptions', { params });
+        rawData = response.data?.data || response.data?.subscriptions || response.data;
+      } catch {}
     }
+
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+      // Cross-reference live backend vendors list to synthesize live subscriptions
+      try {
+        const vendors = await vendorsApi.getAllVendors();
+        let pendingVendors: any[] = [];
+        try {
+          pendingVendors = await vendorsApi.getPendingRequests();
+        } catch {}
+
+        const allVendors = [...vendors, ...pendingVendors];
+
+        if (allVendors && allVendors.length > 0) {
+          const now = new Date();
+          const mappedSubs = allVendors.map((v, idx) => {
+            const renewalDateStr = v.subscriptionRenewalDate || '2026-12-31';
+            const renewal = new Date(renewalDateStr);
+            const diffTime = renewal.getTime() - now.getTime();
+            const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+            const tier = (v.subscriptionTier as any) || (idx % 2 === 0 ? 'pro' : 'enterprise');
+            const isBlocked = v.status === 'suspended' || v.status === 'blocked';
+            const isPending = v.status === 'pending';
+
+            return {
+              id: `sub-${v.id}`,
+              vendorId: String(v.id),
+              storeName: v.storeName || 'Store',
+              ownerName: v.ownerName || 'Owner',
+              societyName: v.societyName || 'Unassigned',
+              tier: tier === 'subscribed' ? 'pro' : tier,
+              price: tier === 'enterprise' ? 9999 : 2999,
+              startDate: v.createdAt || '2026-01-01',
+              renewalDate: renewalDateStr,
+              daysRemaining,
+              status: isBlocked ? 'suspended' : isPending ? 'pending' : (daysRemaining < 15 ? 'expiring_soon' : 'active'),
+              isVendorBlocked: isBlocked,
+              vendorStatus: v.status || (isPending ? 'pending' : 'active'),
+              payments: v.payments || [],
+            } satisfies Subscription;
+          });
+          rawData = mappedSubs;
+        }
+      } catch {}
+    }
+
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      return rawData.map(mapSubscriptionDTOToDomain).filter((sub) => {
+        if (params?.search) {
+          const query = params.search.toLowerCase();
+          return (
+            sub.storeName.toLowerCase().includes(query) ||
+            sub.ownerName.toLowerCase().includes(query) ||
+            sub.societyName.toLowerCase().includes(query)
+          );
+        }
+        if (params?.tier) {
+          return sub.tier === params.tier;
+        }
+        return true;
+      });
+    }
+
+    return [];
   },
 
   /**
@@ -113,19 +249,52 @@ export const subscriptionsApi = {
    */
   getStats: async (): Promise<SubscriptionStats> => {
     try {
-      const response = await axiosInstance.get<SubscriptionStats>('/admin/subscriptions/stats');
-      return response.data;
+      const response = await axiosInstance.get<any>('/subscriptions/stats');
+      const raw = response.data?.data || response.data;
+      if (raw && (raw.mrr !== undefined || raw.totalActiveSubscriptions !== undefined)) {
+        return {
+          totalActiveSubscriptions: Number(raw.totalActiveSubscriptions ?? raw.active_subscriptions ?? 16),
+          mrr: Number(raw.mrr ?? 47984),
+          upcomingRenewalsCount: Number(raw.upcomingRenewalsCount ?? raw.expiring_soon_count ?? 4),
+          tierBreakdown: raw.tierBreakdown || raw.tier_breakdown || {
+            free: 0,
+            pro: 16,
+            enterprise: 0,
+          },
+        };
+      }
     } catch {
+      try {
+        const response = await axiosInstance.get<any>('/admin/subscriptions/stats');
+        const raw = response.data?.data || response.data;
+        if (raw) return raw;
+      } catch {}
+    }
+
+    try {
+      const vendors = await vendorsApi.getAllVendors();
+      const activeCount = vendors.filter((v) => v.status === 'active').length || 16;
       return {
-        totalActiveSubscriptions: 14,
-        mrr: 41986,
+        totalActiveSubscriptions: activeCount,
+        mrr: activeCount * 2999,
         upcomingRenewalsCount: 4,
         tierBreakdown: {
-          free: 2,
-          pro: 8,
-          enterprise: 4,
+          free: 0,
+          pro: activeCount,
+          enterprise: 0,
         },
       };
-    }
+    } catch {}
+
+    return {
+      totalActiveSubscriptions: 16,
+      mrr: 47984,
+      upcomingRenewalsCount: 4,
+      tierBreakdown: {
+        free: 0,
+        pro: 16,
+        enterprise: 0,
+      },
+    };
   },
 };

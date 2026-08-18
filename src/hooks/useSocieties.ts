@@ -29,7 +29,8 @@ export const useCreateSociety = () => {
       const previousSocieties = queryClient.getQueryData<Society[]>(CACHE_KEYS.societies.list(''));
 
       if (previousSocieties) {
-        const locationParts = newSocietyPayload.location.split(',').map((s) => s.trim());
+        const locStr = newSocietyPayload.location || '';
+        const locationParts = locStr ? locStr.split(',').map((s) => s.trim()) : [];
         const optimisticSociety: Society = {
           id: `temp-${Date.now()}`,
           name: newSocietyPayload.society_name,

@@ -1,6 +1,6 @@
 export type VendorStatus = 'active' | 'suspended' | 'pending_approval';
 
-export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
+export type SubscriptionTier = 'subscribed' | 'unsubscribed' | 'pro' | 'free' | 'enterprise';
 
 export interface BusinessHoursItem {
   day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';

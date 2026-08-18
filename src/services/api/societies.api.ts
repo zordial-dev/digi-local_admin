@@ -11,55 +11,54 @@ import type {
 import { mapSocietyDTOToDomain } from '../mappers/society.mapper';
 import { mapVendorDTOToDomain } from '../mappers/vendor.mapper';
 import type { Vendor, RawVendorDTO } from '../../types/vendor.types';
+import { isSocietyMatch } from '../../utils/society.utils';
 
 export const societiesApi = {
   /**
-   * GET /api/societies
+   * GET /admin/societies (also GET /societies)
    */
   getSocieties: async (search?: string): Promise<Society[]> => {
     try {
-      const response = await axiosInstance.get<RawSocietyDTO[]>('/societies', {
-        params: search ? { search } : undefined,
-      });
+      let rawData: any[] = [];
+      const isRenderCloud = String(axiosInstance.defaults.baseURL || '').includes('onrender.com');
+      const primaryEndpoint = isRenderCloud ? '/societies' : '/admin/societies';
+      const fallbackEndpoint = isRenderCloud ? '/admin/societies' : '/societies';
+
+      const queryParams = { status: 'all', limit: 1000, ...(search ? { search } : {}) };
+
+      try {
+        const response = await axiosInstance.get<any>(primaryEndpoint, { params: queryParams });
+        rawData = response.data?.data || response.data?.societies || response.data;
+      } catch {
+        const response = await axiosInstance.get<any>(fallbackEndpoint, { params: queryParams });
+        rawData = response.data?.data || response.data?.societies || response.data;
+      }
+
       let domainList: Society[] = [];
-      if (Array.isArray(response.data)) {
-        domainList = response.data.map(mapSocietyDTOToDomain);
+      if (Array.isArray(rawData)) {
+        domainList = rawData.map(mapSocietyDTOToDomain);
       }
 
-      // Inject demo pending registration society requests for approval workflow test
-      const hasGrandSapphire = domainList.some((s) => s.id === 'soc-pending-786');
-      if (!hasGrandSapphire) {
-        domainList.unshift({
-          id: 'soc-pending-786',
-          name: 'Grand Sapphire Towers',
-          code: 'SOC-786',
-          city: 'Noida',
-          state: 'UP',
-          postalCode: '201304',
-          address: 'Sector 128, Golf Course Expressway, Noida',
-          totalVendorsCount: 0,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      }
+      try {
+        const vendors = await vendorsApi.getAllVendors();
+        if (vendors && vendors.length > 0) {
+          const activeVendors = vendors.filter((v) => {
+            const st = String(v.status || 'active').toLowerCase();
+            return st === 'active' || st === 'approved';
+          });
 
-      const hasPalmMeadows = domainList.some((s) => s.id === 'soc-pending-555');
-      if (!hasPalmMeadows) {
-        domainList.unshift({
-          id: 'soc-pending-555',
-          name: 'Palm Meadows Enclave',
-          code: 'SOC-555',
-          city: 'Pune',
-          state: 'MH',
-          postalCode: '411006',
-          address: 'Kalyani Nagar, Airport Road, Pune',
-          totalVendorsCount: 0,
-          status: 'pending',
-          createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-        });
-      }
+          domainList = domainList.map((soc) => {
+            const countFromVendors = activeVendors.filter((v) =>
+              isSocietyMatch(v.societyId, v.societyName, soc.id, soc.name)
+            ).length;
+
+            return {
+              ...soc,
+              totalVendorsCount: countFromVendors,
+            };
+          });
+        }
+      } catch {}
 
       if (search) {
         const q = search.toLowerCase();
@@ -80,15 +79,20 @@ export const societiesApi = {
   },
 
   /**
-   * POST /api/societies
+   * POST /admin/societies (also POST /societies)
    */
   createSociety: async (payload: CreateSocietyRequest): Promise<CreateSocietyResponse> => {
-    const response = await axiosInstance.post<CreateSocietyResponse>('/societies', payload);
-    return response.data;
+    try {
+      const response = await axiosInstance.post<CreateSocietyResponse>('/admin/societies', payload);
+      return response.data;
+    } catch {
+      const response = await axiosInstance.post<CreateSocietyResponse>('/societies', payload);
+      return response.data;
+    }
   },
 
   /**
-   * PUT /api/societies/:societyId
+   * PUT /societies/:societyId
    */
   updateSociety: async (
     societyId: string | number,
@@ -116,7 +120,7 @@ export const societiesApi = {
   },
 
   /**
-   * POST /api/societies/:societyId/status
+   * POST /admin/societies/:societyId/status
    */
   toggleSocietyStatus: async (
     societyId: string | number,
@@ -124,16 +128,24 @@ export const societiesApi = {
   ): Promise<ToggleSocietyStatusResponse> => {
     try {
       const response = await axiosInstance.post<ToggleSocietyStatusResponse>(
-        `/societies/${societyId}/status`,
+        `/admin/societies/${societyId}/status`,
         { status }
       );
       return response.data;
     } catch {
-      return {
-        message: `Society status updated to ${status.toUpperCase()}`,
-        society_id: societyId,
-        status,
-      };
+      try {
+        const response = await axiosInstance.post<ToggleSocietyStatusResponse>(
+          `/societies/${societyId}/status`,
+          { status }
+        );
+        return response.data;
+      } catch {
+        return {
+          message: `Society status updated to ${status.toUpperCase()}`,
+          society_id: societyId,
+          status,
+        };
+      }
     }
   },
 

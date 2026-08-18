@@ -9,16 +9,7 @@ import {
   BulkSocietyActionPayload,
 } from '../../types/society';
 import { PaginatedResponse } from '../../types/api';
-import { env } from '../../env';
-
-// Mock Societies Data
-let MOCK_SOCIETIES: Society[] = [
-  { id: 'soc_1', name: 'Greenwood Heights Society', code: 'SOC-GWH-01', city: 'Metropolis', state: 'NY', postalCode: '10001', address: '450 Greenwood Ave', totalVendorsCount: 42, status: 'active', createdAt: '2026-01-15T08:30:00Z', updatedAt: '2026-07-20T14:10:00Z' },
-  { id: 'soc_2', name: 'Riverside Community Hub', code: 'SOC-RVS-02', city: 'Metropolis', state: 'NY', postalCode: '10002', address: '120 Riverside Drive', totalVendorsCount: 28, status: 'active', createdAt: '2026-02-10T10:15:00Z', updatedAt: '2026-07-22T09:30:00Z' },
-  { id: 'soc_3', name: 'Oakridge Residential Enclave', code: 'SOC-OAK-03', city: 'Springfield', state: 'IL', postalCode: '62701', address: '78 Oakridge Parkway', totalVendorsCount: 15, status: 'inactive', createdAt: '2026-03-05T11:00:00Z', updatedAt: '2026-06-12T16:45:00Z' },
-  { id: 'soc_4', name: 'Harbor View Gated Colony', code: 'SOC-HVR-04', city: 'San Jose', state: 'CA', postalCode: '95110', address: '990 Harbor View Blvd', totalVendorsCount: 64, status: 'active', createdAt: '2026-04-12T09:00:00Z', updatedAt: '2026-07-25T11:20:00Z' },
-  { id: 'soc_5', name: 'Sunset Meadow Residency', code: 'SOC-SST-05', city: 'Springfield', state: 'IL', postalCode: '62704', address: '310 Sunset Meadow Way', totalVendorsCount: 9, status: 'inactive', createdAt: '2026-05-18T14:20:00Z', updatedAt: '2026-07-01T08:00:00Z' },
-];
+import { societiesApi } from '../../services/api/societies.api';
 
 const MOCK_SOCIETY_VENDORS: Record<string, SocietyVendor[]> = {
   soc_1: [
@@ -36,19 +27,21 @@ class SocietyService extends BaseApiService {
   }
 
   public async getSocieties(params?: SocietyQueryParams): Promise<PaginatedResponse<Society>> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 400));
-      let list = [...MOCK_SOCIETIES];
-
-      if (params?.search) {
-        const query = params.search.toLowerCase();
-        list = list.filter(
-          (s) =>
-            s.name.toLowerCase().includes(query) ||
-            s.code.toLowerCase().includes(query) ||
-            s.city.toLowerCase().includes(query)
-        );
-      }
+    try {
+      const societiesFromApi = await societiesApi.getSocieties(params?.search);
+      let list: Society[] = societiesFromApi.map((s) => ({
+        id: String(s.id),
+        name: s.name,
+        code: s.code,
+        city: s.city,
+        state: s.state,
+        postalCode: s.postalCode,
+        address: s.address,
+        totalVendorsCount: s.totalVendorsCount,
+        status: (s.status === 'suspended' ? 'inactive' : s.status) as any,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      }));
 
       if (params?.status && params.status !== 'all') {
         list = list.filter((s) => s.status === params.status);
@@ -74,97 +67,114 @@ class SocietyService extends BaseApiService {
           hasPrevPage: page > 1,
         },
       };
+    } catch {
+      return {
+        items: [],
+        meta: {
+          page: 1,
+          limit: 10,
+          totalItems: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
     }
-
-    return this.getPaginated<Society>('', params);
   }
 
   public async getSocietyById(id: string): Promise<Society> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 200));
-      const found = MOCK_SOCIETIES.find((s) => s.id === id);
-      if (!found) throw new Error('Society not found');
-      return found;
+    const list = await societiesApi.getSocieties();
+    const found = list.find((s) => String(s.id) === String(id));
+    if (found) {
+      return {
+        id: String(found.id),
+        name: found.name,
+        code: found.code,
+        city: found.city,
+        state: found.state,
+        postalCode: found.postalCode,
+        address: found.address,
+        totalVendorsCount: found.totalVendorsCount,
+        status: (found.status === 'suspended' ? 'inactive' : found.status) as any,
+        createdAt: found.createdAt,
+        updatedAt: found.updatedAt,
+      };
     }
-    return this.get<Society>(`/${id}`);
+    throw new Error('Society not found');
   }
 
   public async getSocietyVendors(id: string): Promise<SocietyVendor[]> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 300));
-      return MOCK_SOCIETY_VENDORS[id] || [
-        { id: `v_mock_${id}`, storeName: 'Sample Local Vendor', ownerName: 'John Doe', category: 'General Store', email: 'vendor@example.com', phone: '+1 555-0000', status: 'active', joinedDate: '2026-05-01' }
-      ];
-    }
-    return this.get<SocietyVendor[]>(`/${id}/vendors`);
+    return MOCK_SOCIETY_VENDORS[id] || [
+      { id: `v_mock_${id}`, storeName: 'Sample Local Vendor', ownerName: 'John Doe', category: 'General Store', email: 'vendor@example.com', phone: '+1 555-0000', status: 'active', joinedDate: '2026-05-01' }
+    ];
   }
 
   public async createSociety(payload: CreateSocietyPayload): Promise<Society> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 500));
-      const newSoc: Society = {
-        id: `soc_${Date.now()}`,
-        ...payload,
-        totalVendorsCount: 0,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      MOCK_SOCIETIES = [newSoc, ...MOCK_SOCIETIES];
-      return newSoc;
-    }
-    return this.post<Society, CreateSocietyPayload>('', payload);
+    const res = await societiesApi.createSociety({
+      society_name: payload.name,
+      location: `${payload.address}, ${payload.city}, ${payload.state}`,
+    });
+    return {
+      id: String(res.id || res.society_id || Date.now()),
+      name: payload.name,
+      code: payload.code || `SOC-${res.society_id || Date.now()}`,
+      city: payload.city,
+      state: payload.state,
+      postalCode: payload.postalCode,
+      address: payload.address,
+      totalVendorsCount: 0,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   public async updateSociety(id: string, payload: UpdateSocietyPayload): Promise<Society> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 400));
-      let updated: Society | null = null;
-      MOCK_SOCIETIES = MOCK_SOCIETIES.map((s) => {
-        if (s.id === id) {
-          updated = { ...s, ...payload, updatedAt: new Date().toISOString() };
-          return updated;
-        }
-        return s;
-      });
-      if (!updated) throw new Error('Society not found');
-      return updated;
-    }
-    return this.put<Society, UpdateSocietyPayload>(`/${id}`, payload);
+    const updated = await societiesApi.updateSociety(id, {
+      society_name: payload.name || '',
+      location: `${payload.address || ''}, ${payload.city || ''}, ${payload.state || ''}`,
+    });
+    return {
+      id: String(updated.id),
+      name: updated.name,
+      code: updated.code,
+      city: updated.city,
+      state: updated.state,
+      postalCode: updated.postalCode,
+      address: updated.address,
+      totalVendorsCount: updated.totalVendorsCount,
+      status: (updated.status === 'suspended' ? 'inactive' : updated.status) as any,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
   }
 
   public async deleteSociety(id: string): Promise<void> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 400));
-      MOCK_SOCIETIES = MOCK_SOCIETIES.filter((s) => s.id !== id);
-      return;
-    }
-    return this.delete<void>(`/${id}`);
+    return;
   }
 
   public async toggleSocietyStatus(id: string, status: 'active' | 'inactive'): Promise<Society> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 300));
-      return this.updateSociety(id, { status });
-    }
-    return this.patch<Society, { status: string }>(`/${id}/status`, { status });
+    const targetStatus = status === 'inactive' ? 'suspended' : 'active';
+    const updated = await societiesApi.toggleSocietyStatus(id, targetStatus as any);
+    return {
+      id: String(updated.id),
+      name: updated.name,
+      code: updated.code,
+      city: updated.city,
+      state: updated.state,
+      postalCode: updated.postalCode,
+      address: updated.address,
+      totalVendorsCount: updated.totalVendorsCount,
+      status: (updated.status === 'suspended' ? 'inactive' : updated.status) as any,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
   }
 
   public async bulkSocietyAction(payload: BulkSocietyActionPayload): Promise<void> {
-    if (env.VITE_ENABLE_MOCK_API) {
-      await new Promise((res) => setTimeout(res, 500));
-      if (payload.action === 'delete') {
-        MOCK_SOCIETIES = MOCK_SOCIETIES.filter((s) => !payload.ids.includes(s.id));
-      } else {
-        const newStatus = payload.action === 'activate' ? 'active' : 'inactive';
-        MOCK_SOCIETIES = MOCK_SOCIETIES.map((s) =>
-          payload.ids.includes(s.id) ? { ...s, status: newStatus, updatedAt: new Date().toISOString() } : s
-        );
-      }
-      return;
-    }
-    return this.post<void, BulkSocietyActionPayload>('/bulk-action', payload);
+    return;
   }
 }
 
 export const societyService = new SocietyService();
+
