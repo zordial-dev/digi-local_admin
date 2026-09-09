@@ -1,86 +1,11 @@
 import { axiosInstance } from './axiosInstance';
 import { vendorsApi } from './vendors.api';
 import type { UserProfile } from '../../types/user.types';
-import { mapUserDTOToDomain } from '../mappers/user.mapper';
+import { mapUserDTOToDomain, saveUserEditOverride } from '../mappers/user.mapper';
+import { mapOrderDTOToDomain } from './orders.api';
 import { cleanQueryParams } from '../../utils/api.utils';
 
-const INITIAL_USERS: UserProfile[] = [
-  {
-    id: 'usr-1',
-    name: 'Commander V.K. Nair',
-    email: 'vknair.resident@gmail.com',
-    phone: '+91 98765 43210',
-    societyName: 'Anupam Society',
-    flatNumber: 'B-402',
-    flagsCount: 1,
-    status: 'active',
-    totalOrders: 28,
-    totalSpend: 14500,
-    totalComplaintsRaised: 3,
-    createdAt: new Date(Date.now() - 86400000 * 120).toISOString(),
-    lastActive: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-  },
-  {
-    id: 'usr-2',
-    name: 'Aarav Gupta',
-    email: 'aarav.retail@gmail.com',
-    phone: '+91 98123 45678',
-    societyName: 'Anupam Society',
-    flatNumber: 'A-108',
-    flagsCount: 0,
-    status: 'active',
-    totalOrders: 42,
-    totalSpend: 28900,
-    totalComplaintsRaised: 1,
-    createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
-    lastActive: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-  },
-  {
-    id: 'usr-3',
-    name: 'Rajesh Sharma',
-    email: 'rajesh.freshbites@gmail.com',
-    phone: '+91 97111 22334',
-    societyName: 'Prestige Heights',
-    flatNumber: 'C-701',
-    flagsCount: 2,
-    status: 'warned',
-    totalOrders: 15,
-    totalSpend: 8400,
-    totalComplaintsRaised: 5,
-    createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
-    lastActive: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-  },
-  {
-    id: 'usr-4',
-    name: 'Priya Verma',
-    email: 'priya.verma@gmail.com',
-    phone: '+91 98765 11223',
-    societyName: 'Greenwood Heights',
-    flatNumber: 'D-302',
-    flagsCount: 0,
-    status: 'active',
-    totalOrders: 65,
-    totalSpend: 42300,
-    totalComplaintsRaised: 0,
-    createdAt: new Date(Date.now() - 86400000 * 150).toISOString(),
-    lastActive: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-  },
-  {
-    id: 'usr-5',
-    name: 'Vikram Mehta',
-    email: 'vikram.m@gmail.com',
-    phone: '+91 99887 76655',
-    societyName: 'Sunrise Apartments',
-    flatNumber: 'E-101',
-    flagsCount: 3,
-    status: 'banned',
-    totalOrders: 8,
-    totalSpend: 3200,
-    totalComplaintsRaised: 6,
-    createdAt: new Date(Date.now() - 86400000 * 45).toISOString(),
-    lastActive: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-];
+const INITIAL_USERS: UserProfile[] = [];
 
 const STORAGE_KEY = 'digilocal_users_store';
 
@@ -91,7 +16,7 @@ const getStoredUsers = (): UserProfile[] => {
   } catch (e) {
     console.error('Error reading stored users:', e);
   }
-  return INITIAL_USERS;
+  return [];
 };
 
 const saveStoredUsers = (users: UserProfile[]) => {
@@ -123,68 +48,26 @@ export const usersApi = {
     try {
       const response = await axiosInstance.get<any>('/admin/users', { params: cleaned });
       const rawData = response.data?.data || response.data?.users || response.data;
-      if (Array.isArray(rawData) && rawData.length > 0) {
+      if (Array.isArray(rawData)) {
         userList = rawData
           .filter((u: any) => u.person_type !== 'sub_admin' && u.role !== 'sub_admin')
           .map(mapUserDTOToDomain);
+        saveStoredUsers(userList);
+        return userList;
       }
     } catch {
       try {
         const response = await axiosInstance.get<any>('/api/v1/admin/users', { params: cleaned });
         const rawData = response.data?.data || response.data;
-        if (Array.isArray(rawData) && rawData.length > 0) {
+        if (Array.isArray(rawData)) {
           userList = rawData
             .filter((u: any) => u.person_type !== 'sub_admin' && u.role !== 'sub_admin')
             .map(mapUserDTOToDomain);
+          saveStoredUsers(userList);
+          return userList;
         }
       } catch {}
     }
-
-    // Cross-reference vendor store owners into the users directory as Dual-Role (user_vendor) accounts
-    try {
-      const vendors = await vendorsApi.getAllVendors();
-      if (vendors && vendors.length > 0) {
-        const existingEmails = new Set(userList.map((u) => u.email.toLowerCase().trim()));
-        const existingPhones = new Set(userList.map((u) => u.phone.replace(/[^0-9]/g, '')));
-
-        for (const v of vendors) {
-          const normEmail = (v.email || '').toLowerCase().trim();
-          const normPhone = (v.phone || '').replace(/[^0-9]/g, '');
-
-          const alreadyInList = (normEmail && existingEmails.has(normEmail)) || (normPhone && existingPhones.has(normPhone));
-
-          if (!alreadyInList) {
-            userList.push({
-              id: `usr-vendor-${v.id}`,
-              name: v.ownerName || 'Store Owner',
-              email: v.email,
-              phone: v.phone,
-              personType: 'user_vendor',
-              status: v.status === 'active' || v.status === 'approved' ? 'active' : 'suspended',
-              societyName: v.societyName || 'Unassigned Society',
-              storeName: v.storeName,
-              category: v.category,
-              flagsCount: 0,
-              totalOrdersCount: v.totalOrdersCount || 14,
-              totalSpend: v.totalEarnings || 2450,
-              totalComplaintsCount: 0,
-              createdAt: v.createdAt || new Date().toISOString(),
-              lastActiveAt: new Date().toISOString(),
-            });
-            if (normEmail) existingEmails.add(normEmail);
-            if (normPhone) existingPhones.add(normPhone);
-          } else {
-            const userObj = userList.find(
-              (u) => (normEmail && u.email.toLowerCase().trim() === normEmail) || (normPhone && u.phone.replace(/[^0-9]/g, '') === normPhone)
-            );
-            if (userObj) {
-              userObj.personType = 'user_vendor';
-              if (!userObj.storeName) userObj.storeName = v.storeName;
-            }
-          }
-        }
-      }
-    } catch {}
 
     saveStoredUsers(userList);
     return userList;
@@ -202,25 +85,33 @@ export const usersApi = {
       }
     } catch {}
 
+    // Fallback: Fetch users list and find matching user by ID, Name, Email, or Phone
+    try {
+      const allUsers = await usersApi.getUsers();
+      const q = String(userId).toLowerCase().trim();
+      const match = allUsers.find(
+        (u) =>
+          u.id.toLowerCase() === q ||
+          (u.name && u.name.toLowerCase().trim() === q) ||
+          (u.name && u.name.toLowerCase().trim().includes(q)) ||
+          (u.email && u.email.toLowerCase().trim() === q) ||
+          (u.phone && u.phone.includes(q))
+      );
+      if (match) return match;
+    } catch {}
+
     const users = getStoredUsers();
-    const found = users.find((u) => u.id === userId || u.email === userId);
+    const q = String(userId).toLowerCase().trim();
+    const found = users.find(
+      (u) =>
+        u.id.toLowerCase() === q ||
+        (u.name && u.name.toLowerCase().trim() === q) ||
+        (u.email && u.email.toLowerCase().trim() === q) ||
+        (u.phone && u.phone.includes(q))
+    );
     if (found) return found;
 
-    return users[0] || {
-      id: userId,
-      name: 'User Profile',
-      email: 'user@digilocal.in',
-      phone: '+91 98765 43210',
-      societyName: 'Anupam Society',
-      flatNumber: 'A-101',
-      flagsCount: 0,
-      status: 'active',
-      totalOrders: 5,
-      totalSpend: 2500,
-      totalComplaintsRaised: 0,
-      createdAt: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-    };
+    throw new Error(`User with identifier ${userId} not found.`);
   },
 
   getUserByNameOrEmail: async (identifier: string): Promise<UserProfile> => {
@@ -228,18 +119,86 @@ export const usersApi = {
   },
 
   /**
-   * POST /admin/users/:userId/block
+   * PUT /admin/users/:userId (Update user details)
    */
-  blockUser: async (userId: string, reason = 'Terms breach'): Promise<{ message: string; status: string }> => {
+  updateUser: async (userId: string, payload: Partial<UserProfile>): Promise<UserProfile> => {
+    let resolvedId = userId;
     try {
-      const response = await axiosInstance.post(`/admin/users/${userId}/block`, { reason });
-      return response.data;
-    } catch {
-      const users = getStoredUsers();
-      const updated = users.map((u) => (u.id === userId ? { ...u, status: 'banned' as const } : u));
-      saveStoredUsers(updated);
-      return { message: `User #${userId} blocked successfully.`, status: 'suspended' };
+      if (!resolvedId.startsWith('usr_') && !resolvedId.startsWith('usr-')) {
+        const allUsers = await usersApi.getUsers();
+        const q = String(userId).toLowerCase().trim();
+        const match = allUsers.find(
+          (u) =>
+            u.id.toLowerCase() === q ||
+            (u.name && u.name.toLowerCase().trim() === q) ||
+            (u.name && u.name.toLowerCase().trim().includes(q)) ||
+            (u.email && u.email.toLowerCase().trim() === q) ||
+            (u.phone && u.phone.includes(q))
+        );
+        if (match) resolvedId = match.id;
+      }
+    } catch {}
+
+    const addressStr = payload.flatNumber && payload.societyName
+      ? `${payload.flatNumber}, ${payload.societyName}`
+      : payload.societyName || payload.flatNumber || '';
+
+    const apiPayload = {
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      flat: payload.flatNumber || (payload as any).flat,
+      area: payload.societyName || (payload as any).area,
+      city: (payload as any).city || 'Noida',
+      pincode: (payload as any).pincode || '201301',
+      address: (payload as any).address || addressStr,
+      status: payload.status ? String(payload.status).toUpperCase() : 'ACTIVE',
+      ...payload,
+    };
+
+    saveUserEditOverride(resolvedId, apiPayload);
+    if (resolvedId !== userId) {
+      saveUserEditOverride(userId, apiPayload);
     }
+
+    try {
+      let response: any;
+      try {
+        response = await axiosInstance.put(`/admin/users/${resolvedId}`, apiPayload);
+      } catch {
+        response = await axiosInstance.put(`/users/${resolvedId}`, apiPayload);
+      }
+      const raw = response.data?.data || response.data;
+      const mapped = mapUserDTOToDomain(raw);
+      return { ...mapped, ...apiPayload };
+    } catch {
+      const existing = await usersApi.getUserById(resolvedId).catch(() => ({ id: resolvedId } as UserProfile));
+      return { ...existing, ...apiPayload };
+    }
+  },
+
+  blockUser: async (userId: string, reason = 'Repeated policy violations'): Promise<{ success?: boolean; message: string; status: string }> => {
+    const endpoints = [
+      `/admin/users/${userId}/block`,
+      `/api/admin/users/${userId}/block`,
+      `/people/${userId}/block`,
+      `/api/people/${userId}/block`,
+    ];
+    for (const ep of endpoints) {
+      try {
+        const response = await axiosInstance.post(ep, { reason });
+        if (response.data) return response.data;
+      } catch {}
+    }
+
+    const users = getStoredUsers();
+    const updated = users.map((u) => (u.id === userId ? { ...u, status: 'blocked' as const, isBlocked: true } : u));
+    saveStoredUsers(updated);
+    return {
+      success: true,
+      message: 'User account status updated to BLOCKED.',
+      status: 'blocked',
+    };
   },
 
   /**
@@ -303,7 +262,7 @@ export const usersApi = {
 
   flagUser: async (userId: string): Promise<{ user: UserProfile; wasBanned: boolean }> => {
     try {
-      const response = await axiosInstance.post(`/admin/users/${userId}/block`, { reason: 'User flagged by admin' });
+      const response = await axiosInstance.post(`/admin/users/${userId}/flag`);
       if (response.data) {
         const users = getStoredUsers();
         const found = users.find((u) => u.id === userId);
@@ -335,7 +294,7 @@ export const usersApi = {
 
   resetUserFlags: async (userId: string): Promise<UserProfile> => {
     try {
-      await axiosInstance.post(`/admin/users/${userId}/unblock`);
+      await axiosInstance.delete(`/admin/users/${userId}/flag`);
     } catch {}
 
     const users = getStoredUsers();
@@ -352,5 +311,106 @@ export const usersApi = {
 
     saveStoredUsers(updated);
     return updated.find((u) => u.id === userId)!;
+  },
+
+  /**
+   * GET /admin/users/:userId/orders (v2.6.0 specification)
+   */
+  getUserOrders: async (userId: string): Promise<any[]> => {
+    let resolvedId = userId;
+    try {
+      if (!resolvedId.startsWith('usr_') && !resolvedId.startsWith('usr-')) {
+        const allUsers = await usersApi.getUsers();
+        const q = String(userId).toLowerCase().trim();
+        const match = allUsers.find(
+          (u) =>
+            u.id.toLowerCase() === q ||
+            (u.name && u.name.toLowerCase().trim() === q) ||
+            (u.name && u.name.toLowerCase().trim().includes(q))
+        );
+        if (match) resolvedId = match.id;
+      }
+    } catch {}
+
+    try {
+      let raw: any;
+      try {
+        const response = await axiosInstance.get(`/admin/users/${resolvedId}/orders`);
+        raw = response.data?.data || response.data?.orders || response.data;
+      } catch {
+        const response = await axiosInstance.get(`/users/${resolvedId}/orders`);
+        raw = response.data?.data || response.data?.orders || response.data;
+      }
+      if (Array.isArray(raw)) {
+        return raw.map(mapOrderDTOToDomain);
+      }
+    } catch {}
+
+    return [];
+  },
+
+  /**
+   * GET /admin/users/:userId/payments
+   */
+  getUserPayments: async (userId: string): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get(`/admin/users/${userId}/payments`);
+      const raw = response.data?.data || response.data?.payments || response.data;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * GET /admin/users/:userId/timeline
+   */
+  getUserTimeline: async (userId: string): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get(`/admin/users/${userId}/timeline`);
+      const raw = response.data?.data || response.data?.timeline || response.data;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * GET /admin/users/:userId/addresses
+   */
+  getUserAddresses: async (userId: string): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get(`/admin/users/${userId}/addresses`);
+      const raw = response.data?.data || response.data?.addresses || response.data;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * GET /admin/users/:userId/notifications
+   */
+  getUserNotifications: async (userId: string): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get(`/admin/users/${userId}/notifications`);
+      const raw = response.data?.data || response.data?.notifications || response.data;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * GET /admin/users/:userId/audit-logs
+   */
+  getUserAuditLogs: async (userId: string): Promise<any[]> => {
+    try {
+      const response = await axiosInstance.get(`/admin/users/${userId}/audit-logs`);
+      const raw = response.data?.data || response.data?.logs || response.data;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
   },
 };

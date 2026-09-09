@@ -7,6 +7,8 @@ export interface User {
   lastName: string;
   avatarUrl?: string;
   role: UserRole;
+  powers?: string[];
+  allowedDelegationPowers?: string[];
   permissions: string[];
   createdAt: string;
   updatedAt: string;

@@ -1,6 +1,12 @@
 export type PersonType = 'user' | 'vendor' | 'sub_admin' | 'user_vendor';
 export type PersonStatus = 'active' | 'warned' | 'banned' | 'blocked' | 'suspended';
 
+export interface StrikeDetail {
+  strikeNumber: number;
+  reason: string;
+  date?: string;
+}
+
 export interface PersonProfile {
   id: string;
   name: string;
@@ -11,14 +17,25 @@ export interface PersonProfile {
   societyName: string;
   societyId?: string;
   flatNumber?: string;
+  address?: string;
+  area?: string;
+  city?: string;
+  pincode?: string;
   storeName?: string;
   category?: string;
   flagsCount: number;
+  strikes?: number;
+  strikeReasons?: StrikeDetail[];
+  maxStrikesAllowed?: number;
+  isBlocked?: boolean;
+  isAutoBanned?: boolean;
   rating?: number;
   totalOrdersCount: number;
   totalComplaintsCount: number;
   avatarUrl?: string;
   createdAt: string;
+  createdAtIst?: string;
+  createdAtReadable?: string;
   lastActiveAt: string;
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Bell,
@@ -14,11 +14,15 @@ import {
   ShieldAlert,
   ArrowRight,
   ExternalLink,
+  Activity,
+  ChevronDown,
 } from 'lucide-react';
 import './Navbar.css';
 import { useAuth } from '../../../hooks/useAuth';
+import { usePermission } from '../../../hooks/usePermission';
 import { useSocieties } from '../../../hooks/useSocieties';
 import { useVendors } from '../../../hooks/useVendors';
+import { AuditLogDrawer } from '../../common/AuditLogDrawer';
 
 export interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -38,79 +42,63 @@ interface NotificationItem {
   targetUrl: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'n-1',
-    title: 'New Vendor Onboarding Application',
-    message: 'ResinReverie (Lovely Sethiya) submitted a new registration request for Greenwood Residency.',
-    time: '10m ago',
-    unread: true,
-    type: 'vendor',
-    categoryBadge: 'Vendor Request',
-    entityDetails: 'ResinReverie • Greenwood Residency',
-    actionText: 'Review & Verify Payment',
-    targetUrl: '/dashboard/vendors?tab=pending',
-  },
-  {
-    id: 'n-2',
-    title: 'Enterprise Subscription Renewed',
-    message: 'Mahagun Organic store renewed their Enterprise Tier subscription plan for 12 months.',
-    time: '45m ago',
-    unread: true,
-    type: 'subscription',
-    categoryBadge: 'Payment Cleared',
-    entityDetails: 'Mahagun Organic • Invoice #INV-2026-09',
-    actionText: 'View Subscription & Invoice',
-    targetUrl: '/dashboard/subscriptions',
-  },
-  {
-    id: 'n-3',
-    title: 'Residential Enclave Onboarded',
-    message: 'Royal Garden Enclave (Code RGE-2026) was activated with 8 assigned vendors.',
-    time: '2h ago',
-    unread: false,
-    type: 'society',
-    categoryBadge: 'Society Active',
-    entityDetails: 'Royal Garden Enclave • Sector 62',
-    actionText: 'Manage Enclave Vendors',
-    targetUrl: '/dashboard/societies',
-  },
-  {
-    id: 'n-4',
-    title: 'Vendor Compliance Warning',
-    message: 'Fresh Veggies Store received an automated warning regarding delivery delay reports.',
-    time: '5h ago',
-    unread: false,
-    type: 'vendor',
-    categoryBadge: 'Compliance Alert',
-    entityDetails: 'Fresh Veggies Store • Mahagun Enclave',
-    actionText: 'Inspect Vendor Account',
-    targetUrl: '/dashboard/vendors?tab=suspended',
-  },
-  {
-    id: 'n-5',
-    title: 'Security & Access Log Audit',
-    message: 'Root administrator password updated and sub-admin delegation powers audited.',
-    time: '1d ago',
-    unread: false,
-    type: 'system',
-    categoryBadge: 'Security Audit',
-    entityDetails: 'Platform Security • Admin Portal',
-    actionText: 'View Security Settings',
-    targetUrl: '/dashboard/settings',
-  },
-];
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export const Navbar: React.FC<NavbarProps> = () => {
   const { user, logout } = useAuth();
+  const { isSuperAdmin } = usePermission();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [canGoBack, setCanGoBack] = useState(false);
+  const initialPathRef = useRef<string | null>(null);
+  const navCountRef = useRef(0);
+
+  useEffect(() => {
+    const currentPath = location.pathname + location.search;
+    if (initialPathRef.current === null) {
+      initialPathRef.current = currentPath;
+    } else if (initialPathRef.current !== currentPath) {
+      navCountRef.current += 1;
+    }
+
+    const idx = window.history.state?.idx;
+    if (typeof idx === 'number') {
+      setCanGoBack(idx > 0);
+    } else {
+      setCanGoBack(navCountRef.current > 0);
+    }
+  }, [location]);
+
+  const userInitial = user
+    ? (user.firstName?.charAt(0) || (user as any).name?.charAt(0) || user.email?.charAt(0) || 'A').toUpperCase()
+    : 'A';
+
+  const displayName = user
+    ? (user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : (user as any).name || user.email)
+    : 'Aarushi Admin';
+
+  const roleBadgeText = isSuperAdmin ? 'SUPER ADMIN' : 'SUB ADMIN';
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [notifVisibleCount, setNotifVisibleCount] = useState(3);
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('digilocal_admin_notifications');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_NOTIFICATIONS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('digilocal_admin_notifications', JSON.stringify(notifications));
+    } catch {}
+  }, [notifications]);
 
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -119,25 +107,71 @@ export const Navbar: React.FC<NavbarProps> = () => {
   const { data: societies = [] } = useSocieties(searchTerm);
   const { data: vendors = [] } = useVendors({ search: searchTerm });
 
+  // Sync resubmitted & pending vendors dynamically into notification center
+  useEffect(() => {
+    if (vendors && vendors.length > 0) {
+      const resubmittedVendors = vendors.filter(
+        (v) =>
+          (v.hasResubmitted ||
+            v.hasVendorUpdate ||
+            (v.resubmittedChanges && v.resubmittedChanges.length > 0) ||
+            (v.updatedFieldKeys && v.updatedFieldKeys.length > 0)) &&
+          !v.isUpdateViewed
+      );
+      if (resubmittedVendors.length > 0) {
+        setNotifications((prev) => {
+          const existingIds = new Set(prev.map((n) => n.id));
+          const newNotifs: NotificationItem[] = [];
+
+          resubmittedVendors.forEach((v) => {
+            const nId = `notif-vendor-${v.id}`;
+            if (!existingIds.has(nId)) {
+              newNotifs.push({
+                id: nId,
+                title: 'Vendor Settings Resubmitted',
+                message: `${v.storeName} (${v.ownerName}) updated registration settings in response to hold request.`,
+                time: v.resubmittedAtReadable || 'Just now',
+                unread: true,
+                type: 'vendor',
+                categoryBadge: 'Resubmission',
+                entityDetails: `${v.storeName} • ${v.locationArea || v.societyName || v.area || 'Jagatpura'}`,
+                actionText: 'Review Updated Details',
+                targetUrl: `/dashboard/vendors?tab=on_hold`,
+              });
+            }
+          });
+
+          if (newNotifs.length > 0) {
+            return [...newNotifs, ...prev];
+          }
+          return prev;
+        });
+      }
+    }
+  }, [vendors]);
+
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   };
 
+  const handleNotifClick = (id: string, targetUrl: string) => {
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, unread: false } : item))
+    );
+    navigate(targetUrl);
+    setIsNotificationsOpen(false);
+  };
+
+  const handleDismissNotif = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const filteredNotifs = notifFilter === 'unread'
     ? notifications.filter((n) => n.unread)
     : notifications;
-
-  const handleNotifScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 50 && notifVisibleCount < filteredNotifs.length) {
-      setNotifVisibleCount((prev) => Math.min(prev + 3, filteredNotifs.length));
-    }
-  };
-
-  const displayedNotifs = filteredNotifs.slice(0, notifVisibleCount);
-  const hasMoreNotifs = notifVisibleCount < filteredNotifs.length;
 
   const getNotifIcon = (type: NotificationItem['type']) => {
     switch (type) {
@@ -178,14 +212,16 @@ export const Navbar: React.FC<NavbarProps> = () => {
   return (
     <header className="navbar-header">
       <div className="navbar-left">
-        {/* Back Navigation Button */}
-        <button
-          className="nav-icon-btn toggle-arrow-btn"
-          onClick={() => navigate(-1)}
-          title="Go Back"
-        >
-          <ArrowLeft size={18} />
-        </button>
+        {/* Back Navigation Button - appears only after admin changes panel */}
+        {canGoBack && (
+          <button
+            className="nav-icon-btn toggle-arrow-btn"
+            onClick={() => navigate(-1)}
+            title="Go Back"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
       </div>
 
       {/* Global Interactive Search Bar */}
@@ -273,12 +309,23 @@ export const Navbar: React.FC<NavbarProps> = () => {
       </div>
 
       <div className="navbar-right">
+        {/* System Audit & Mutation Logs Navigation Shortcut Button */}
+        <button
+          type="button"
+          className="nav-icon-btn text-[#A88B58] hover:text-white hover:bg-[#6B2732] transition-all flex items-center justify-center border border-[#E7DFD5] rounded-full"
+          onClick={() => navigate('/dashboard/audit-logs')}
+          title="View Complete Audit Logs & Mutation Trail Section"
+        >
+          <Activity size={18} />
+        </button>
+
         {/* Notifications Button & Popover */}
         <div className="notif-dropdown-wrapper" ref={notifRef}>
           <button
+            type="button"
             className="nav-icon-btn relative"
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            title="Notifications"
+            title="System Notifications"
           >
             <Bell size={18} />
             {unreadCount > 0 && <span className="nav-badge-dot" />}
@@ -314,57 +361,55 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 </button>
               </div>
 
-              <div className="notif-list" onScroll={handleNotifScroll}>
+              <div className="notif-list">
                 {filteredNotifs.length === 0 ? (
                   <div className="p-6 text-center text-xs text-slate-500">
-                    No unread notifications at present.
+                    {notifFilter === 'unread' ? 'No unread notifications at present.' : 'No notifications found.'}
                   </div>
                 ) : (
-                  <>
-                    {displayedNotifs.map((n) => (
-                      <div
-                        key={n.id}
-                        className={`notif-item ${n.unread ? 'unread' : ''}`}
-                        onClick={() => {
-                          navigate(n.targetUrl);
-                          setIsNotificationsOpen(false);
-                        }}
+                  filteredNotifs.map((n) => (
+                    <div
+                      key={n.id}
+                      className={`notif-item relative group ${n.unread ? 'unread' : ''}`}
+                      onClick={() => handleNotifClick(n.id, n.targetUrl)}
+                    >
+                      <div className={`notif-item-icon-box ${n.type}`}>
+                        {getNotifIcon(n.type)}
+                      </div>
+
+                      <div className="notif-item-content">
+                        <div className="notif-item-header pr-6">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="notif-item-title">{n.title}</span>
+                            <span className="notif-item-badge">{n.categoryBadge}</span>
+                          </div>
+                          <span className="notif-time">{n.time}</span>
+                        </div>
+
+                        <p className="notif-item-msg">{n.message}</p>
+
+                        {n.entityDetails && (
+                          <div className="notif-item-entity">
+                            {n.entityDetails}
+                          </div>
+                        )}
+
+                        <div className="notif-item-action">
+                          <span>{n.actionText}</span>
+                          <ArrowRight size={12} />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDismissNotif(e, n.id)}
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        title="Dismiss notification"
                       >
-                        <div className={`notif-item-icon-box ${n.type}`}>
-                          {getNotifIcon(n.type)}
-                        </div>
-
-                        <div className="notif-item-content">
-                          <div className="notif-item-header">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="notif-item-title">{n.title}</span>
-                              <span className="notif-item-badge">{n.categoryBadge}</span>
-                            </div>
-                            <span className="notif-time">{n.time}</span>
-                          </div>
-
-                          <p className="notif-item-msg">{n.message}</p>
-
-                          {n.entityDetails && (
-                            <div className="notif-item-entity">
-                              {n.entityDetails}
-                            </div>
-                          )}
-
-                          <div className="notif-item-action">
-                            <span>{n.actionText}</span>
-                            <ArrowRight size={12} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {hasMoreNotifs && (
-                      <div className="p-2 text-center text-[11px] font-semibold text-[#C4A066] flex items-center justify-center gap-1.5">
-                        <span>Scroll to auto-load more notifications...</span>
-                      </div>
-                    )}
-                  </>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
 
@@ -372,11 +417,11 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 <button
                   className="notif-footer-btn"
                   onClick={() => {
-                    navigate('/dashboard/overview');
+                    navigate('/dashboard/audit-logs');
                     setIsNotificationsOpen(false);
                   }}
                 >
-                  <span>View All System Activity & Reports</span>
+                  <span>View All Audit Logs & System Trail</span>
                   <ExternalLink size={13} />
                 </button>
               </div>
@@ -384,21 +429,29 @@ export const Navbar: React.FC<NavbarProps> = () => {
           )}
         </div>
 
-        {/* User Profile Dropdown */}
+        {/* Logged-In User Profile Capsule Dropdown */}
         <div className="profile-dropdown-wrapper" ref={profileRef}>
           <button
-            className="nav-icon-btn profile-avatar-btn"
+            type="button"
+            className="profile-capsule-btn"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            title="User Profile"
+            title="User Account Options"
           >
-            <User size={18} />
+            <div className="profile-capsule-avatar">
+              {userInitial}
+            </div>
+            <div className="profile-capsule-info">
+              <span className="profile-capsule-name">{displayName}</span>
+              <span className="profile-capsule-role">{roleBadgeText}</span>
+            </div>
+            <ChevronDown size={14} className={`profile-capsule-chevron ${isProfileOpen ? 'open' : ''}`} />
           </button>
 
           {isProfileOpen && (
             <div className="profile-popover animate-fade-in">
               <div className="profile-popover-header">
-                <span className="user-name">{(user as any)?.name || user?.email || 'System Admin'}</span>
-                <span className="user-role">{user?.role ? user.role.toUpperCase() : 'SUPER ADMIN'}</span>
+                <span className="user-name">{displayName}</span>
+                <span className="user-role">{roleBadgeText}</span>
               </div>
               <button
                 className="logout-btn"
@@ -413,6 +466,11 @@ export const Navbar: React.FC<NavbarProps> = () => {
           )}
         </div>
       </div>
+
+      <AuditLogDrawer
+        isOpen={isAuditDrawerOpen}
+        onClose={() => setIsAuditDrawerOpen(false)}
+      />
     </header>
   );
 };

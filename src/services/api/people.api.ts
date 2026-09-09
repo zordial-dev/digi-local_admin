@@ -9,88 +9,149 @@ import type {
 import { mapUserDTOToDomain } from '../mappers/user.mapper';
 import { cleanQueryParams } from '../../utils/api.utils';
 
-const INITIAL_PEOPLE_MOCK: PersonProfile[] = [
-  {
-    id: 'usr-1',
-    name: 'Aarav Gupta',
-    email: 'aarav.retail@gmail.com',
-    phone: '+91 98123 45678',
-    personType: 'user',
-    status: 'active',
-    societyName: 'Anupam Society',
-    flatNumber: 'A-108',
-    flagsCount: 0,
-    totalOrdersCount: 42,
-    totalComplaintsCount: 0,
-    createdAt: '2025-11-12T10:30:00Z',
-    lastActiveAt: '2026-08-07T09:15:00Z',
-  },
-  {
-    id: 'usr-2',
-    name: 'Commander V.K. Nair',
-    email: 'vknair.resident@gmail.com',
-    phone: '+91 98765 43210',
-    personType: 'user',
-    status: 'active',
-    societyName: 'Anupam Society',
-    flatNumber: 'B-402',
-    flagsCount: 0,
-    totalOrdersCount: 28,
-    totalComplaintsCount: 0,
-    createdAt: '2025-08-20T14:10:00Z',
-    lastActiveAt: '2026-08-07T08:45:00Z',
-  },
-  {
-    id: 'usr-3',
-    name: 'Rajesh Sharma',
-    email: 'rajesh.freshbites@gmail.com',
-    phone: '+91 97111 22334',
-    personType: 'user',
-    status: 'warned',
-    societyName: 'Prestige Heights',
-    flatNumber: 'C-701',
-    flagsCount: 1,
-    totalOrdersCount: 15,
-    totalComplaintsCount: 1,
-    createdAt: '2026-01-15T09:00:00Z',
-    lastActiveAt: '2026-08-06T18:20:00Z',
-  },
-  {
-    id: 'usr-4',
-    name: 'Priya Verma',
-    email: 'priya.verma@gmail.com',
-    phone: '+91 98765 11223',
-    personType: 'user_vendor',
-    status: 'active',
-    societyName: 'Greenwood Heights',
-    flatNumber: 'D-302',
-    storeName: 'Priya Organic Mart',
-    category: 'Organic Grocery',
-    flagsCount: 0,
-    totalOrdersCount: 65,
-    totalComplaintsCount: 0,
-    createdAt: '2025-06-10T11:20:00Z',
-    lastActiveAt: '2026-08-07T10:00:00Z',
-  },
-  {
-    id: 'usr-5',
-    name: 'Vikram Mehta',
-    email: 'vikram.m@gmail.com',
-    phone: '+91 99887 76655',
-    personType: 'user',
-    status: 'banned',
-    societyName: 'Sunrise Apartments',
-    flatNumber: 'E-101',
-    flagsCount: 3,
-    totalOrdersCount: 8,
-    totalComplaintsCount: 3,
-    createdAt: '2025-10-05T16:45:00Z',
-    lastActiveAt: '2026-08-06T15:10:00Z',
-  },
-];
+const INITIAL_PEOPLE_MOCK: PersonProfile[] = [];
 
 const USER_STATUS_MAP = new Map<string, PersonProfile['status']>();
 const USER_FLAGS_MAP = new Map<string, number>();
+
+const STRIKES_STORAGE_KEY = 'digilocal_user_strikes_persistent';
+const STATUS_STORAGE_KEY = 'digilocal_user_status_persistent';
+
+export const savePersistentStrike = (userId: string, strikes: number, personObj?: Partial<PersonProfile>) => {
+  try {
+    const raw = localStorage.getItem(STRIKES_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+
+    const uStr = String(userId).trim();
+    map[uStr] = strikes;
+    map[`usr_${uStr}`] = strikes;
+    map[`usr_v_${uStr}`] = strikes;
+    map[uStr.replace(/^usr_v_|^usr_|^user_/, '')] = strikes;
+
+    if (personObj) {
+      if (personObj.email) map[personObj.email.toLowerCase().trim()] = strikes;
+      if (personObj.phone) map[personObj.phone.trim()] = strikes;
+      if (personObj.name) map[personObj.name.toLowerCase().trim()] = strikes;
+    }
+
+    localStorage.setItem(STRIKES_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+};
+
+export const savePersistentStatus = (userId: string, status: PersonProfile['status'], personObj?: Partial<PersonProfile>) => {
+  try {
+    const raw = localStorage.getItem(STATUS_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+
+    const uStr = String(userId).trim();
+    map[uStr] = status;
+    map[`usr_${uStr}`] = status;
+    map[`usr_v_${uStr}`] = status;
+    map[uStr.replace(/^usr_v_|^usr_|^user_/, '')] = status;
+
+    if (personObj) {
+      if (personObj.email) map[personObj.email.toLowerCase().trim()] = status;
+      if (personObj.phone) map[personObj.phone.trim()] = status;
+      if (personObj.name) map[personObj.name.toLowerCase().trim()] = status;
+    }
+
+    localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+};
+
+const STRIKE_REASONS_STORAGE_KEY = 'digilocal_user_strike_reasons_persistent';
+
+export const savePersistentStrikeReason = (userId: string, strikeNum: number, reason: string, personObj?: Partial<PersonProfile>) => {
+  try {
+    const raw = localStorage.getItem(STRIKE_REASONS_STORAGE_KEY);
+    const map: Record<string, Array<{ strikeNumber: number; reason: string; date?: string }>> = raw ? JSON.parse(raw) : {};
+
+    const newItem = {
+      strikeNumber: strikeNum,
+      reason: reason || 'Policy violation / moderation strike',
+      date: new Date().toISOString(),
+    };
+
+    const keysToSave = [
+      String(userId).trim(),
+      `usr_${String(userId).trim()}`,
+      `usr_v_${String(userId).trim()}`,
+      String(userId).trim().replace(/^usr_v_|^usr_|^user_/, ''),
+    ];
+
+    if (personObj) {
+      if (personObj.email) keysToSave.push(personObj.email.toLowerCase().trim());
+      if (personObj.phone) keysToSave.push(personObj.phone.trim());
+      if (personObj.name) keysToSave.push(personObj.name.toLowerCase().trim());
+    }
+
+    for (const key of keysToSave) {
+      if (!key) continue;
+      const list = map[key] || [];
+      const existingIdx = list.findIndex((item) => item.strikeNumber === strikeNum);
+      if (existingIdx >= 0) {
+        list[existingIdx] = newItem;
+      } else {
+        list.push(newItem);
+      }
+      map[key] = list;
+    }
+
+    localStorage.setItem(STRIKE_REASONS_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+};
+
+export const clearPersistentStrikeReasons = (userId: string, personObj?: Partial<PersonProfile>) => {
+  try {
+    const raw = localStorage.getItem(STRIKE_REASONS_STORAGE_KEY);
+    if (!raw) return;
+    const map: Record<string, any> = JSON.parse(raw);
+
+    const keysToClear = [
+      String(userId).trim(),
+      `usr_${String(userId).trim()}`,
+      `usr_v_${String(userId).trim()}`,
+      String(userId).trim().replace(/^usr_v_|^usr_|^user_/, ''),
+    ];
+
+    if (personObj) {
+      if (personObj.email) keysToClear.push(personObj.email.toLowerCase().trim());
+      if (personObj.phone) keysToClear.push(personObj.phone.trim());
+      if (personObj.name) keysToClear.push(personObj.name.toLowerCase().trim());
+    }
+
+    for (const key of keysToClear) {
+      delete map[key];
+    }
+
+    localStorage.setItem(STRIKE_REASONS_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+};
+
+export const getPersistentStrikeReasons = (userId: string, email?: string, phone?: string, name?: string) => {
+  try {
+    const raw = localStorage.getItem(STRIKE_REASONS_STORAGE_KEY);
+    if (!raw) return [];
+    const map: Record<string, Array<{ strikeNumber: number; reason: string; date?: string }>> = JSON.parse(raw);
+
+    const keysToTry = [
+      String(userId).trim(),
+      `usr_${String(userId).trim()}`,
+      `usr_v_${String(userId).trim()}`,
+      String(userId).trim().replace(/^usr_v_|^usr_|^user_/, ''),
+      email?.toLowerCase().trim(),
+      phone?.trim(),
+      name?.toLowerCase().trim(),
+    ].filter(Boolean) as string[];
+
+    for (const k of keysToTry) {
+      if (map[k] && Array.isArray(map[k]) && map[k].length > 0) {
+        return map[k];
+      }
+    }
+  } catch {}
+  return [];
+};
 
 export const peopleApi = {
   getPeople: async (filters?: PeopleFilterOptions): Promise<PersonProfile[]> => {
@@ -113,52 +174,9 @@ export const peopleApi = {
       } catch {}
     }
 
-    // Cross-reference vendor store owners into the users directory as Dual-Role (user_vendor) accounts
-    try {
-      const vendors = await vendorsApi.getAllVendors();
-      if (vendors && vendors.length > 0) {
-        const existingEmails = new Set(userList.map((u) => u.email.toLowerCase().trim()));
-        const existingPhones = new Set(userList.map((u) => u.phone.replace(/[^0-9]/g, '')));
-
-        for (const v of vendors) {
-          const normEmail = (v.email || '').toLowerCase().trim();
-          const normPhone = (v.phone || '').replace(/[^0-9]/g, '');
-
-          const alreadyInList = (normEmail && existingEmails.has(normEmail)) || (normPhone && existingPhones.has(normPhone));
-
-          if (!alreadyInList) {
-            userList.push({
-              id: `usr-vendor-${v.id}`,
-              name: v.ownerName || 'Store Owner',
-              email: v.email,
-              phone: v.phone,
-              personType: 'user_vendor',
-              status: v.status === 'active' || v.status === 'approved' ? 'active' : 'suspended',
-              societyName: v.societyName || 'Unassigned Society',
-              storeName: v.storeName,
-              category: v.category,
-              flagsCount: 0,
-              totalOrdersCount: v.totalOrdersCount || 14,
-              totalComplaintsCount: 0,
-              createdAt: v.createdAt || new Date().toISOString(),
-              lastActiveAt: new Date().toISOString(),
-            });
-            if (normEmail) existingEmails.add(normEmail);
-            if (normPhone) existingPhones.add(normPhone);
-          } else {
-            // Update existing user record to be dual-role user_vendor if they own a vendor store
-            const userObj = userList.find(
-              (u) => (normEmail && u.email.toLowerCase().trim() === normEmail) || (normPhone && u.phone.replace(/[^0-9]/g, '') === normPhone)
-            );
-            if (userObj) {
-              userObj.personType = 'user_vendor';
-              if (!userObj.storeName) userObj.storeName = v.storeName;
-              if (!userObj.category) userObj.category = v.category;
-            }
-          }
-        }
-      }
-    } catch {}
+    if (userList.length === 0) {
+      userList = [...INITIAL_PEOPLE_MOCK];
+    }
 
     // Apply persistent status and strike overrides
     for (const p of userList) {
@@ -203,13 +221,36 @@ export const peopleApi = {
 
   getPersonById: async (id: string): Promise<PersonProfile> => {
     try {
+      let raw: any;
+      try {
+        const response = await axiosInstance.get(`/admin/users/${id}`);
+        raw = response.data?.data || response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.get(`/people/${id}`);
+          raw = response.data?.data || response.data;
+        } catch {
+          const response = await axiosInstance.get(`/users/status`, { params: { user_id: id } });
+          raw = response.data?.data || response.data;
+        }
+      }
+
+      if (raw && (raw.id || raw.user_id || raw.name)) {
+        const domain = mapUserDTOToDomain(raw);
+        return domain;
+      }
+    } catch {}
+
+    try {
       const allPeople = await peopleApi.getPeople();
+      const q = String(id).toLowerCase().trim();
       const match = allPeople.find(
         (p) =>
-          String(p.id).toLowerCase() === String(id).toLowerCase() ||
-          (p.name && p.name.toLowerCase().trim() === String(id).toLowerCase().trim()) ||
-          (p.email && p.email.toLowerCase().trim() === String(id).toLowerCase().trim()) ||
-          (p.storeName && p.storeName.toLowerCase().trim() === String(id).toLowerCase().trim())
+          String(p.id).toLowerCase() === q ||
+          (p.name && p.name.toLowerCase().trim() === q) ||
+          (p.name && p.name.toLowerCase().trim().includes(q)) ||
+          (p.email && p.email.toLowerCase().trim() === q) ||
+          (p.storeName && p.storeName.toLowerCase().trim() === q)
       );
       if (match) {
         if (USER_STATUS_MAP.has(match.id)) match.status = USER_STATUS_MAP.get(match.id)!;
@@ -218,46 +259,7 @@ export const peopleApi = {
       }
     } catch {}
 
-    try {
-      let raw: any;
-      try {
-        const response = await axiosInstance.get(`/admin/users/${id}`);
-        raw = response.data?.data || response.data;
-      } catch {
-        const response = await axiosInstance.get(`/people/${id}`);
-        raw = response.data?.data || response.data;
-      }
-
-      if (raw) {
-        const domain = mapUserDTOToDomain(raw);
-        if (USER_STATUS_MAP.has(domain.id)) domain.status = USER_STATUS_MAP.get(domain.id)!;
-        if (USER_FLAGS_MAP.has(domain.id)) domain.flagsCount = USER_FLAGS_MAP.get(domain.id)!;
-        return domain;
-      }
-    } catch {}
-
-    const found = INITIAL_PEOPLE_MOCK.find((p) => p.id === id || p.name === id);
-    if (found) {
-      if (USER_STATUS_MAP.has(found.id)) found.status = USER_STATUS_MAP.get(found.id)!;
-      if (USER_FLAGS_MAP.has(found.id)) found.flagsCount = USER_FLAGS_MAP.get(found.id)!;
-      return found;
-    }
-
-    const fallback: PersonProfile = {
-      id: String(id),
-      name: id,
-      email: `${id.toLowerCase().replace(/[^a-z0-9]/g, '')}@digilocal.internal`,
-      phone: '+91 95492 42594',
-      personType: 'user_vendor',
-      status: USER_STATUS_MAP.get(id) || 'active',
-      societyName: 'Utsav Apartment',
-      flagsCount: USER_FLAGS_MAP.get(id) || 0,
-      totalOrdersCount: 14,
-      totalComplaintsCount: 0,
-      createdAt: new Date().toISOString(),
-      lastActiveAt: new Date().toISOString(),
-    };
-    return fallback;
+    throw new Error(`Person/User with ID ${id} not found.`);
   },
 
   createPerson: async (data: CreatePersonRequest): Promise<PersonProfile> => {
@@ -297,64 +299,169 @@ export const peopleApi = {
         const response = await axiosInstance.put(`/admin/users/${id}/status`, { status });
         if (response.data) {
           USER_STATUS_MAP.set(id, status);
+          savePersistentStatus(id, status);
           return mapUserDTOToDomain(response.data?.data || response.data);
         }
       } catch {
         const response = await axiosInstance.put(`/people/${id}/status`, { status });
         if (response.data) {
           USER_STATUS_MAP.set(id, status);
+          savePersistentStatus(id, status);
           return response.data;
         }
       }
     } catch {}
 
     USER_STATUS_MAP.set(id, status);
+    savePersistentStatus(id, status);
     const target = await peopleApi.getPersonById(id);
     target.status = status;
     return target;
   },
 
-  flagPerson: async (id: string): Promise<{ person: PersonProfile; wasBanned: boolean }> => {
+  flagPerson: async (id: string, reason?: string): Promise<{ person: PersonProfile; wasBanned: boolean; message?: string }> => {
     try {
+      let responseData: any;
       try {
-        const response = await axiosInstance.post(`/admin/users/${id}/flag`);
-        if (response.data) {
-          const res = response.data?.data || response.data;
-          if (res.person) {
-            USER_FLAGS_MAP.set(id, res.person.flagsCount);
-            USER_STATUS_MAP.set(id, res.person.status);
-            return res;
-          }
-        }
+        const response = await axiosInstance.post(`/admin/users/${id}/strike`, { reason: reason || 'Policy violation / moderation strike' });
+        responseData = response.data;
       } catch {
-        const response = await axiosInstance.post(`/people/${id}/flag`);
-        if (response.data) {
-          const res = response.data?.data || response.data;
-          if (res.person) {
-            USER_FLAGS_MAP.set(id, res.person.flagsCount);
-            USER_STATUS_MAP.set(id, res.person.status);
-            return res;
-          }
+        try {
+          const response = await axiosInstance.post(`/people/${id}/strike`, { reason: reason || 'Policy violation / moderation strike' });
+          responseData = response.data;
+        } catch {
+          const response = await axiosInstance.post(`/admin/users/${id}/flag`, { reason: reason || 'Policy violation / moderation strike' });
+          responseData = response.data;
         }
+      }
+
+      if (responseData) {
+        const rawObj = responseData?.data || responseData?.person || responseData;
+        const msg = String(responseData.message || responseData.status || '');
+
+        let strikesCount = Number(
+          rawObj?.strikes ??
+          rawObj?.flags_count ??
+          rawObj?.flagsCount ??
+          rawObj?.strike_count ??
+          rawObj?.strikes_count ??
+          rawObj?.current_strikes ??
+          rawObj?.total_flags ??
+          rawObj?.user_strikes ??
+          responseData?.strikes ??
+          0
+        );
+
+        if (!strikesCount && msg) {
+          const match = msg.match(/Strike\s*#?(\d+)/i) || msg.match(/(\d+)\s*strike/i);
+          if (match) strikesCount = Number(match[1]);
+        }
+
+        if (!strikesCount) {
+          const prev = (USER_FLAGS_MAP.get(id) || 0);
+          strikesCount = prev > 0 ? prev + 1 : 1;
+        }
+
+        const isAutoBanned = Boolean(rawObj?.is_auto_banned || rawObj?.isAutoBanned || strikesCount >= 3);
+        const isBlocked = Boolean(rawObj?.is_blocked || rawObj?.isBlocked || rawObj?.status === 'blocked' || rawObj?.status === 'banned' || isAutoBanned);
+
+        USER_FLAGS_MAP.set(id, strikesCount);
+        USER_STATUS_MAP.set(id, isBlocked ? 'banned' : 'warned');
+
+        const domainPerson = mapUserDTOToDomain(rawObj);
+        domainPerson.flagsCount = strikesCount;
+        domainPerson.strikes = strikesCount;
+        domainPerson.status = isBlocked ? 'banned' : 'warned';
+        domainPerson.isBlocked = isBlocked;
+        domainPerson.isAutoBanned = isAutoBanned;
+
+        savePersistentStrike(id, strikesCount, domainPerson);
+        savePersistentStatus(id, isBlocked ? 'banned' : 'warned', domainPerson);
+        savePersistentStrikeReason(id, strikesCount, reason || 'Policy violation / moderation strike', domainPerson);
+
+        return { person: domainPerson, wasBanned: isBlocked, message: msg };
       }
     } catch {}
 
     const person = await peopleApi.getPersonById(id);
-    const currentFlags = (USER_FLAGS_MAP.get(id) ?? person.flagsCount) + 1;
+    const currentFlags = (USER_FLAGS_MAP.get(id) ?? person.flagsCount ?? person.strikes ?? 0) + 1;
     USER_FLAGS_MAP.set(id, currentFlags);
     person.flagsCount = currentFlags;
+    person.strikes = currentFlags;
 
     let wasBanned = false;
     if (currentFlags >= 3) {
       person.status = 'banned';
+      person.isBlocked = true;
+      person.isAutoBanned = true;
       USER_STATUS_MAP.set(id, 'banned');
+      savePersistentStrike(id, currentFlags, person);
+      savePersistentStatus(id, 'banned', person);
+      savePersistentStrikeReason(id, currentFlags, reason || 'Policy violation / moderation strike', person);
       wasBanned = true;
     } else {
       person.status = 'warned';
       USER_STATUS_MAP.set(id, 'warned');
+      savePersistentStrike(id, currentFlags, person);
+      savePersistentStatus(id, 'warned', person);
+      savePersistentStrikeReason(id, currentFlags, reason || 'Policy violation / moderation strike', person);
     }
 
-    return { person, wasBanned };
+    return {
+      person,
+      wasBanned,
+      message: wasBanned
+        ? `Strike #${currentFlags} issued to user "${person.name}". Account has reached 3 strikes and is AUTOMATICALLY BANNED / BLOCKED!`
+        : `Strike #${currentFlags} issued to user "${person.name}". (${3 - currentFlags} strikes remaining before automatic ban).`
+    };
+  },
+
+  resetStrikes: async (id: string): Promise<PersonProfile> => {
+    try {
+      let responseData: any;
+      try {
+        const response = await axiosInstance.delete(`/admin/users/${id}/strike`);
+        responseData = response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.post(`/people/${id}/unstrike`, { reset_all: true });
+          responseData = response.data;
+        } catch {
+          const response = await axiosInstance.delete(`/people/${id}/strike`);
+          responseData = response.data;
+        }
+      }
+
+      if (responseData) {
+        const rawObj = responseData?.data || responseData;
+        USER_FLAGS_MAP.set(id, 0);
+        USER_STATUS_MAP.set(id, 'active');
+        const domainPerson = mapUserDTOToDomain(rawObj);
+        domainPerson.flagsCount = 0;
+        domainPerson.strikes = 0;
+        domainPerson.status = 'active';
+        domainPerson.isBlocked = false;
+        domainPerson.isAutoBanned = false;
+
+        savePersistentStrike(id, 0, domainPerson);
+        savePersistentStatus(id, 'active', domainPerson);
+        clearPersistentStrikeReasons(id, domainPerson);
+        return domainPerson;
+      }
+    } catch {}
+
+    USER_FLAGS_MAP.set(id, 0);
+    USER_STATUS_MAP.set(id, 'active');
+    const person = await peopleApi.getPersonById(id);
+    person.flagsCount = 0;
+    person.strikes = 0;
+    person.status = 'active';
+    person.isBlocked = false;
+    person.isAutoBanned = false;
+    savePersistentStrike(id, 0, person);
+    savePersistentStatus(id, 'active', person);
+    clearPersistentStrikeReasons(id, person);
+    return person;
   },
 
   getPeopleAnalytics: async (): Promise<PeopleAnalyticsSummary> => {

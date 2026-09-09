@@ -1,6 +1,6 @@
 import { BaseApiService } from './base.service';
 import { apiClient } from '../client';
-import {
+import type {
   DashboardMetrics,
   RevenuePoint,
   VendorGrowthPoint,
@@ -91,9 +91,33 @@ class DashboardService extends BaseApiService {
   }
 
   public async getDashboardData(): Promise<DashboardData> {
-    // Simulate network delay for mock mode
-    await new Promise((res) => setTimeout(res, 600));
-    return MOCK_DASHBOARD_DATA;
+    try {
+      const response = await apiClient.get<any>('/admin/dashboard');
+      const data = response.data?.data || response.data;
+      if (data && data.metrics) {
+        return data;
+      }
+    } catch {}
+
+    return {
+      metrics: {
+        totalRevenue: 0,
+        revenueChangePercent: 0,
+        activeVendors: 0,
+        vendorsChangePercent: 0,
+        totalSubscriptions: 0,
+        subscriptionsChangePercent: 0,
+        growthRatePercent: 0,
+        growthRateChangePercent: 0,
+      },
+      revenueChart: [],
+      vendorGrowthChart: [],
+      subscriptionChart: [],
+      recentPayments: [],
+      recentVendors: [],
+      recentActivities: [],
+      notifications: [],
+    };
   }
 }
 

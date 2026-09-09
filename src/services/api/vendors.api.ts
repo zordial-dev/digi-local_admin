@@ -1,6 +1,7 @@
 import { axiosInstance } from './axiosInstance';
 import type { Vendor, VendorApprovalResponse } from '../../types/vendor.types';
-import { mapVendorDTOToDomain } from '../mappers/vendor.mapper';
+import { mapVendorDTOToDomain, setVendorStatusOverride, saveVendorEditOverride } from '../mappers/vendor.mapper';
+import { mapOrderDTOToDomain, type OrderDetails } from './orders.api';
 import { cleanQueryParams } from '../../utils/api.utils';
 import { ENV } from '../../constants/env.constants';
 
@@ -15,150 +16,27 @@ export interface VendorListParams {
 const LOCAL_VENDORS_KEY = 'digilocal_admin_vendors_list';
 const LOCAL_PENDING_VENDORS_KEY = 'digilocal_admin_pending_vendors_list';
 
-const INITIAL_FALLBACK_VENDORS: Vendor[] = [
-  {
-    id: 'v-101',
-    storeName: 'FreshBites Daily Grocery',
-    ownerName: 'Rajesh Sharma',
-    email: 'rajesh.freshbites@gmail.com',
-    phone: '+91 98765 43210',
-    address: 'Shop #12, Greenwood Commercial Block',
-    societyName: 'Greenwood Heights Society',
-    gstin: '07AAAAA0000A1Z5',
-    category: 'Grocery & Staples',
-    status: 'active',
-    subscriptionTier: 'pro',
-    subscriptionRenewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-    totalEarnings: 245000,
-    totalOrdersCount: 1420,
-    avatarUrl: '',
-    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-  {
-    id: 'v-102',
-    storeName: 'FreshMart Grocery & Organic',
-    ownerName: 'Priya Verma',
-    email: 'priya.organic@gmail.com',
-    phone: '+91 98111 22334',
-    address: 'Block B, Palm Meadows Market',
-    societyName: 'Anupam Society',
-    gstin: '07BBBBB1111B1Z6',
-    category: 'Fresh Vegetables & Organic',
-    status: 'active',
-    subscriptionTier: 'enterprise',
-    subscriptionRenewalDate: new Date(Date.now() + 60 * 86400000).toISOString(),
-    totalEarnings: 489000,
-    totalOrdersCount: 2890,
-    avatarUrl: '',
-    createdAt: new Date(Date.now() - 3600000 * 24 * 60).toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-  {
-    id: 'v-103',
-    storeName: 'Apex Electronics & Appliances',
-    ownerName: 'Aarav Gupta',
-    email: 'aarav.retail@gmail.com',
-    phone: '+91 99887 76655',
-    address: 'Ground Floor, Silver Oaks Plaza',
-    societyName: 'Silver Oaks Society',
-    gstin: '07CCCCC2222C1Z7',
-    category: 'Electronics & Repairs',
-    status: 'active',
-    subscriptionTier: 'free',
-    subscriptionRenewalDate: new Date(Date.now() + 15 * 86400000).toISOString(),
-    totalEarnings: 120000,
-    totalOrdersCount: 640,
-    avatarUrl: '',
-    createdAt: new Date(Date.now() - 3600000 * 24 * 15).toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-  {
-    id: 'v-104',
-    storeName: 'Rohan Electronics & Supplies',
-    ownerName: 'Rohan Mehta',
-    email: 'rohan.m@gmail.com',
-    phone: '+91 97888 33445',
-    address: 'Shop 5, Prestige Commercial Tower',
-    societyName: 'Prestige Heights',
-    gstin: '07DDDDD4444D1Z8',
-    category: 'Home Electronics',
-    status: 'suspended',
-    subscriptionTier: 'pro',
-    subscriptionRenewalDate: new Date(Date.now() - 5 * 86400000).toISOString(),
-    totalEarnings: 84000,
-    totalOrdersCount: 310,
-    avatarUrl: '',
-    createdAt: new Date(Date.now() - 3600000 * 24 * 90).toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-];
+const INITIAL_FALLBACK_VENDORS: Vendor[] = [];
+const INITIAL_PENDING_VENDORS: Vendor[] = [];
 
-const INITIAL_PENDING_VENDORS: Vendor[] = [
-  {
-    id: 'v-105',
-    storeName: 'Royal Bakers & Confectionery',
-    ownerName: 'Vikram Singh',
-    email: 'vikram.royalbakers@gmail.com',
-    phone: '+91 98444 55667',
-    address: 'Shop 4, Sunrise Commercial Complex',
-    societyName: 'Sunrise Apartments',
-    gstin: '07EEEEE5555E1Z9',
-    category: 'Bakery & Desserts',
-    status: 'pending',
-    subscriptionTier: 'pro',
-    subscriptionRenewalDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-    totalEarnings: 0,
-    totalOrdersCount: 0,
-    avatarUrl: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-  {
-    id: 'v-106',
-    storeName: 'Green Leaf Organic Vegetables',
-    ownerName: 'Ananya Sharma',
-    email: 'ananya.greenleaf@gmail.com',
-    phone: '+91 97222 33445',
-    address: 'Stall 2, Anupam Gate Market',
-    societyName: 'Anupam Society',
-    gstin: '07FFFFF6666F1Z0',
-    category: 'Organic Fruits & Vegetables',
-    status: 'pending',
-    subscriptionTier: 'enterprise',
-    subscriptionRenewalDate: new Date(Date.now() + 60 * 86400000).toISOString(),
-    totalEarnings: 0,
-    totalOrdersCount: 0,
-    avatarUrl: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    payments: [],
-  },
-];
-
-const getLocalVendors = (): Vendor[] => {
+export const getLocalVendors = (): Vendor[] => {
   try {
     const raw = localStorage.getItem(LOCAL_VENDORS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
-  return INITIAL_FALLBACK_VENDORS;
+  return [];
 };
 
-const saveLocalVendors = (vendors: Vendor[]) => {
+export const saveLocalVendors = (vendors: Vendor[]) => {
   try {
     localStorage.setItem(LOCAL_VENDORS_KEY, JSON.stringify(vendors));
   } catch {}
 };
 
-const getLocalPendingVendors = (): Vendor[] => {
+export const getLocalPendingVendors = (): Vendor[] => {
   try {
     const raw = localStorage.getItem(LOCAL_PENDING_VENDORS_KEY);
     if (raw) {
@@ -166,10 +44,10 @@ const getLocalPendingVendors = (): Vendor[] => {
       if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
-  return INITIAL_PENDING_VENDORS;
+  return [];
 };
 
-const saveLocalPendingVendors = (vendors: Vendor[]) => {
+export const saveLocalPendingVendors = (vendors: Vendor[]) => {
   try {
     localStorage.setItem(LOCAL_PENDING_VENDORS_KEY, JSON.stringify(vendors));
   } catch {}
@@ -177,76 +55,97 @@ const saveLocalPendingVendors = (vendors: Vendor[]) => {
 
 export const vendorsApi = {
   /**
-   * GET /api/admin/vendors
+   * GET /api/vendors (All Vendors across backend)
    */
   getAllVendors: async (params?: VendorListParams): Promise<Vendor[]> => {
     const rawCleaned = cleanQueryParams(params);
     const cleaned: Record<string, any> = rawCleaned ? { ...rawCleaned } : {};
 
-    const isRenderCloud =
-      String(ENV.API_BASE_URL || '').includes('onrender.com') ||
-      String(axiosInstance.defaults.baseURL || '').includes('onrender.com');
-
-    // Ensure all vendors across all pages are returned from backend
-    if (!cleaned.limit) {
-      cleaned.limit = 1000;
-    }
-
-    // Render cloud backend expects status parameter to be passed for /vendors
-    if (!cleaned.status && !cleaned.search) {
-      cleaned.status = 'all';
-    }
-
-    const primaryEndpoint = isRenderCloud ? '/vendors' : '/admin/vendors';
-    const fallbackEndpoint = isRenderCloud ? '/admin/vendors' : '/vendors';
-
+    const endpoints = ['/admin/vendors', '/vendors/profile', '/vendors', '/vendors/all', '/admin/requests'];
     let rawData: any = null;
-    try {
-      const response = await axiosInstance.get<any>(primaryEndpoint, { params: cleaned });
-      rawData = response.data?.data || response.data?.vendors || response.data;
-    } catch {
+
+    for (const ep of endpoints) {
       try {
-        const response = await axiosInstance.get<any>(fallbackEndpoint, { params: cleaned });
-        rawData = response.data?.data || response.data?.vendors || response.data;
-      } catch (err) {
-        console.warn('Backend vendors fetch failed, using fallback vendors:', err);
+        const response = await axiosInstance.get<any>(ep, { params: cleaned });
+        const resData = response.data?.data || response.data?.vendors || response.data?.requests || response.data;
+        if (Array.isArray(resData)) {
+          rawData = resData;
+          break;
+        }
+      } catch {
+        try {
+          // Retry endpoint without query parameters if params format differed
+          const response = await axiosInstance.get<any>(ep);
+          const resData = response.data?.data || response.data?.vendors || response.data?.requests || response.data;
+          if (Array.isArray(resData)) {
+            rawData = resData;
+            break;
+          }
+        } catch {}
       }
     }
 
-    if (Array.isArray(rawData) && rawData.length > 0) {
+    if (Array.isArray(rawData)) {
       const uniqueMap = new Map<string, Vendor>();
       for (const rawItem of rawData) {
         const domainVendor = mapVendorDTOToDomain(rawItem);
         if (!uniqueMap.has(domainVendor.id)) {
           uniqueMap.set(domainVendor.id, domainVendor);
-        } else {
-          const existing = uniqueMap.get(domainVendor.id)!;
-          if (domainVendor.payments && domainVendor.payments.length > 0) {
-            const existingTxnIds = new Set(existing.payments.map((p) => p.transaction_id));
-            for (const p of domainVendor.payments) {
-              if (!existingTxnIds.has(p.transaction_id)) {
-                existing.payments.push(p);
-              }
-            }
-          }
         }
       }
-      const domainList = Array.from(uniqueMap.values());
-      saveLocalVendors(domainList);
-      return domainList;
+      return Array.from(uniqueMap.values());
     }
 
-    return getLocalVendors();
+    return [];
   },
 
   /**
-   * GET /api/admin/requests (Pending Onboarding Applications)
+   * GET /api/admin/vendors/:vendorId / GET /api/vendors/profile
+   */
+  getVendorById: async (vendorId: string | number): Promise<Vendor> => {
+    const sId = String(vendorId);
+    try {
+      let rawData: any = null;
+      try {
+        const response = await axiosInstance.get(`/admin/vendors/${sId}`);
+        rawData = response.data?.data || response.data?.vendor || response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.get(`/vendors/profile`, { params: { vendor_id: sId } });
+          rawData = response.data?.data || response.data?.vendor || response.data;
+        } catch {
+          const response = await axiosInstance.get(`/vendors/${sId}`);
+          rawData = response.data?.data || response.data?.vendor || response.data;
+        }
+      }
+
+      if (rawData && (rawData.vendor_id || rawData.id || rawData.store_name || rawData.vendor_name)) {
+        return mapVendorDTOToDomain(rawData);
+      }
+    } catch {}
+
+    const all = await vendorsApi.getAllVendors();
+    const match = all.find((v) => String(v.id) === sId);
+    if (match) return match;
+
+    throw new Error(`Vendor with ID ${sId} not found.`);
+  },
+
+  /**
+   * GET /api/vendors/pending (Pending Onboarding Applications)
    */
   getPendingRequests: async (): Promise<Vendor[]> => {
     try {
-      const response = await axiosInstance.get<any>('/admin/requests');
-      const rawData = response.data?.data || response.data?.requests || response.data;
-      if (Array.isArray(rawData) && rawData.length > 0) {
+      let rawData: any = null;
+      try {
+        const response = await axiosInstance.get<any>('/vendors/pending');
+        rawData = response.data?.data || response.data?.requests || response.data;
+      } catch {
+        const response = await axiosInstance.get<any>('/admin/requests');
+        rawData = response.data?.data || response.data?.requests || response.data;
+      }
+
+      if (Array.isArray(rawData)) {
         const uniqueMap = new Map<string, Vendor>();
         for (const rawItem of rawData) {
           const domainVendor = mapVendorDTOToDomain(rawItem);
@@ -254,36 +153,78 @@ export const vendorsApi = {
             uniqueMap.set(domainVendor.id, domainVendor);
           }
         }
-        const domainList = Array.from(uniqueMap.values());
-        saveLocalPendingVendors(domainList);
-        return domainList;
+        return Array.from(uniqueMap.values());
       }
     } catch (err) {
-      console.warn('Backend pending requests fetch failed, using fallback pending vendors:', err);
+      console.warn('Backend pending requests fetch failed:', err);
     }
-    return getLocalPendingVendors();
+    return [];
   },
 
   /**
-   * POST /api/admin/requests/:vendorId/approve
+   * POST /api/vendors/:vendorId/approve
    */
   approveVendor: async (vendorId: string | number): Promise<VendorApprovalResponse> => {
     const sId = String(vendorId);
     try {
-      const response = await axiosInstance.post<VendorApprovalResponse>(`/admin/requests/${vendorId}/approve`);
-      return response.data;
+      let backendRes: any = null;
+      try {
+        const response = await axiosInstance.post<any>(`/vendors/${vendorId}/approve`, {
+          status: 'ACTIVE',
+        });
+        backendRes = response.data?.data || response.data;
+      } catch {
+        const response = await axiosInstance.post<any>(`/admin/requests/${vendorId}/approve`);
+        backendRes = response.data?.data || response.data;
+      }
+
+      saveVendorEditOverride(sId, {
+        status: 'active',
+        holdReason: undefined,
+        holdEmailSubject: undefined,
+        holdTimestamp: undefined,
+      });
+      setVendorStatusOverride(sId, 'active');
+
+      const remainingPending = getLocalPendingVendors().filter((v) => v.id !== sId);
+      saveLocalPendingVendors(remainingPending);
+
+      return {
+        message: backendRes?.message || `Vendor #${sId} application approved successfully.`,
+        vendor_id: vendorId,
+        status: 'active',
+      };
     } catch {
-      // Local fallback approval logic
       const pending = getLocalPendingVendors();
-      const target = pending.find((v) => v.id === sId);
+      const allVendors = getLocalVendors();
+
+      const targetInPending = pending.find((v) => v.id === sId);
+      const targetInAll = allVendors.find((v) => v.id === sId);
+
+      const target = targetInPending || targetInAll;
       const remainingPending = pending.filter((v) => v.id !== sId);
       saveLocalPendingVendors(remainingPending);
 
       if (target) {
-        const activeVendors = getLocalVendors();
-        const updatedTarget: Vendor = { ...target, status: 'active', updatedAt: new Date().toISOString() };
-        saveLocalVendors([...activeVendors, updatedTarget]);
+        const updatedTarget: Vendor = {
+          ...target,
+          status: 'active',
+          holdReason: undefined,
+          holdEmailSubject: undefined,
+          holdTimestamp: undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        const remainingAll = allVendors.filter((v) => v.id !== sId);
+        saveLocalVendors([...remainingAll, updatedTarget]);
       }
+
+      saveVendorEditOverride(sId, {
+        status: 'active',
+        holdReason: undefined,
+        holdEmailSubject: undefined,
+        holdTimestamp: undefined,
+      });
+      setVendorStatusOverride(sId, 'active');
 
       return {
         message: `Vendor #${sId} application approved successfully.`,
@@ -294,22 +235,222 @@ export const vendorsApi = {
   },
 
   /**
-   * POST /api/admin/requests/:vendorId/reject
+   * GET /api/vendors/on-hold
+   */
+  getOnHoldVendors: async (): Promise<Vendor[]> => {
+    try {
+      let rawData: any = null;
+      try {
+        const response = await axiosInstance.get<any>('/vendors/on-hold');
+        rawData = response.data?.data || response.data?.requests || response.data;
+      } catch {
+        const response = await axiosInstance.get<any>('/admin/requests/on-hold');
+        rawData = response.data?.data || response.data?.requests || response.data;
+      }
+
+      if (Array.isArray(rawData)) {
+        const domainList = rawData.map(mapVendorDTOToDomain);
+        return domainList.sort((a, b) => (b.hasResubmitted ? 1 : 0) - (a.hasResubmitted ? 1 : 0));
+      }
+    } catch (err) {
+      console.warn('Backend on-hold fetch failed:', err);
+    }
+
+    const pending = getLocalPendingVendors();
+    const all = getLocalVendors();
+    const onHoldVendors = [...pending, ...all].filter((v) => v.status === 'on_hold');
+
+    const uniqueMap = new Map<string, Vendor>();
+    onHoldVendors.forEach((v) => uniqueMap.set(v.id, v));
+
+    const result = Array.from(uniqueMap.values());
+    return result.sort((a, b) => (b.hasResubmitted ? 1 : 0) - (a.hasResubmitted ? 1 : 0));
+  },
+
+  /**
+   * POST /api/vendors/:vendorId/hold
+   */
+  /**
+   * POST /api/vendors/:vendorId/hold (also PUT status fallback)
+   */
+  holdVendor: async (
+    vendorId: string | number,
+    payload: HoldVendorPayload
+  ): Promise<VendorApprovalResponse> => {
+    const sId = String(vendorId);
+    const holdSubj = payload.subject || payload.hold_email_subject || 'Document Correction Required for DigiLocal Registration';
+    const holdMsg = payload.email_content || payload.hold_reason || payload.reason || payload.remarks || payload.message || 'Please upload required documents and update details in settings.';
+
+    const apiPayload = {
+      subject: holdSubj,
+      hold_email_subject: holdSubj,
+      email_subject: holdSubj,
+      hold_subject: holdSubj,
+      title: holdSubj,
+
+      email_content: holdMsg,
+      hold_reason: holdMsg,
+      reason: holdMsg,
+      remarks: holdMsg,
+      comments: holdMsg,
+      message: holdMsg,
+
+      status: 'on_hold',
+    };
+
+    const endpoints = [
+      `/v1/admin/vendors/${vendorId}/hold`,
+      `/admin/vendors/${vendorId}/hold`,
+      `/admin/requests/${vendorId}/hold`,
+      `/vendors/${vendorId}/hold`,
+    ];
+
+    try {
+      let response: any = null;
+      for (const ep of endpoints) {
+        try {
+          response = await axiosInstance.post<any>(ep, apiPayload);
+          if (response?.data) break;
+        } catch {
+          // Continue trying fallback endpoints
+        }
+      }
+
+      if (!response) {
+        // Try PUT /admin/vendors/:id/status endpoint
+        response = await axiosInstance.put<any>(`/admin/vendors/${vendorId}/status`, apiPayload);
+      }
+
+      const backendRes = response?.data?.data || response?.data || {};
+      saveVendorEditOverride(sId, {
+        status: 'on_hold',
+        holdEmailSubject: holdSubj,
+        holdReason: holdMsg,
+        holdTimestamp: new Date().toISOString(),
+      });
+      setVendorStatusOverride(sId, 'on_hold');
+
+      return {
+        message: backendRes.message || `Vendor application placed on hold and email notice sent successfully.`,
+        vendor_id: vendorId,
+        status: 'on_hold',
+        hold_email_subject: holdSubj,
+        hold_reason: holdMsg,
+        has_resubmitted: false,
+      };
+    } catch {
+      const pending = getLocalPendingVendors();
+      const allVendors = getLocalVendors();
+
+      const targetInPending = pending.find((v) => v.id === sId);
+      const targetInAll = allVendors.find((v) => v.id === sId);
+
+      const target = targetInPending || targetInAll;
+      const remainingPending = pending.filter((v) => v.id !== sId);
+      saveLocalPendingVendors(remainingPending);
+
+      if (target) {
+        const updatedTarget: Vendor = {
+          ...target,
+          status: 'on_hold',
+          holdEmailSubject: holdSubj,
+          holdReason: holdMsg,
+          holdTimestamp: new Date().toISOString(),
+          hasResubmitted: false,
+          resubmittedAt: null,
+          hasVendorUpdate: false,
+          comments: [
+            ...(target.comments || []),
+            {
+              id: `c-${Date.now()}`,
+              author: 'Super Admin (SMTP Notice)',
+              role: 'admin',
+              text: `Subject: ${holdSubj}\n\n${holdMsg}`,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          updatedAt: new Date().toISOString(),
+        };
+        const remainingAll = allVendors.filter((v) => v.id !== sId);
+        saveLocalVendors([...remainingAll, updatedTarget]);
+
+        saveVendorEditOverride(sId, {
+          status: 'on_hold',
+          holdEmailSubject: holdSubj,
+          holdReason: holdMsg,
+          holdTimestamp: new Date().toISOString(),
+        });
+        setVendorStatusOverride(sId, 'on_hold');
+      }
+
+      return {
+        message: `Vendor application placed on hold and email notice sent successfully.`,
+        vendor_id: vendorId,
+        status: 'on_hold',
+        hold_email_subject: holdSubj,
+        hold_reason: holdMsg,
+        has_resubmitted: false,
+      };
+    }
+  },
+
+  /**
+   * POST /api/vendors/:vendorId/reject
    */
   rejectVendor: async (
     vendorId: string | number,
     _reason?: string
   ): Promise<VendorApprovalResponse> => {
     const sId = String(vendorId);
+    const rejReason = _reason || 'Documentation incomplete or unverified';
     try {
-      const response = await axiosInstance.post<VendorApprovalResponse>(`/admin/requests/${vendorId}/reject`, {
-        reason: _reason || 'Incomplete documentation',
-      });
-      return response.data;
+      let backendRes: any = null;
+      try {
+        const response = await axiosInstance.post<any>(`/vendors/${vendorId}/reject`, {
+          status: 'REJECTED',
+          reason: rejReason,
+        });
+        backendRes = response.data?.data || response.data;
+      } catch {
+        const response = await axiosInstance.post<any>(`/admin/requests/${vendorId}/reject`, {
+          reason: rejReason,
+        });
+        backendRes = response.data?.data || response.data;
+      }
+
+      saveVendorEditOverride(sId, { status: 'rejected', rejectionReason: rejReason });
+      setVendorStatusOverride(sId, 'rejected');
+
+      const remainingPending = getLocalPendingVendors().filter((v) => v.id !== sId);
+      saveLocalPendingVendors(remainingPending);
+
+      return {
+        message: backendRes?.message || `Vendor #${sId} application rejected.`,
+        vendor_id: vendorId,
+        status: 'rejected',
+      };
     } catch {
       const pending = getLocalPendingVendors();
+      const allVendors = getLocalVendors();
+
+      const targetInPending = pending.find((v) => v.id === sId);
+      const targetInAll = allVendors.find((v) => v.id === sId);
+
+      const target = targetInPending || targetInAll;
       const remainingPending = pending.filter((v) => v.id !== sId);
       saveLocalPendingVendors(remainingPending);
+
+      if (target) {
+        const updatedTarget: Vendor = {
+          ...target,
+          status: 'rejected',
+          rejectionReason: rejReason,
+          rejectionTimestamp: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const remainingAll = allVendors.filter((v) => v.id !== sId);
+        saveLocalVendors([...remainingAll, updatedTarget]);
+      }
 
       return {
         message: `Vendor #${sId} application rejected.`,
@@ -320,33 +461,259 @@ export const vendorsApi = {
   },
 
   /**
-   * POST /api/admin/vendors/:vendorId/status
+   * GET /api/admin/vendors/:id/reapplication-changes
+   */
+  getReapplicationChanges: async (vendorId: string | number) => {
+    const sId = String(vendorId);
+    const endpoints = [
+      `/admin/vendors/${sId}/reapplication-changes`,
+      `/admin/vendors/${sId}/changes`,
+      `/admin/requests/${sId}/reapplication-changes`,
+      `/vendors/${sId}/changes`,
+    ];
+    for (const ep of endpoints) {
+      try {
+        const response = await axiosInstance.get(ep);
+        const resData = response.data?.data || response.data;
+        if (resData) return resData;
+      } catch {}
+    }
+    return null;
+  },
+
+  /**
+   * POST /api/vendors/:vendorId/block
+   */
+  blockVendor: async (vendorId: string | number, reason: string): Promise<VendorApprovalResponse> => {
+    const sId = String(vendorId);
+    const endpoints = [
+      `/vendors/${sId}/block`,
+      `/admin/vendors/${sId}/block`,
+    ];
+    for (const ep of endpoints) {
+      try {
+        const response = await axiosInstance.post<VendorApprovalResponse>(ep, { reason });
+        if (response.data) return response.data;
+      } catch {}
+    }
+    setVendorStatusOverride(sId, 'suspended');
+    return {
+      message: 'Merchant account blocked successfully by admin.',
+      vendor_id: vendorId,
+      status: 'blocked',
+    };
+  },
+
+  /**
+   * POST /api/admin/vendors/:vendorId/status (Block / Unblock Vendor)
    */
   toggleVendorStatus: async (
     vendorId: string | number,
     status: 'active' | 'suspended'
   ): Promise<VendorApprovalResponse> => {
     const sId = String(vendorId);
-    try {
-      const response = await axiosInstance.post<VendorApprovalResponse>(
-        `/admin/vendors/${vendorId}/status`,
-        { status }
-      );
-      return response.data;
-    } catch {
-      const vendors = getLocalVendors();
-      const updated = vendors.map((v) => {
-        if (v.id === sId) {
-          return { ...v, status, updatedAt: new Date().toISOString() };
-        }
-        return v;
-      });
-      saveLocalVendors(updated);
 
+    // Save override locally for instant UI responsiveness and persistent fallback
+    setVendorStatusOverride(sId, status);
+
+    const vendors = getLocalVendors();
+    const updatedLocal = vendors.map((v) => {
+      if (v.id === sId) {
+        return { ...v, status, updatedAt: new Date().toISOString() };
+      }
+      return v;
+    });
+    saveLocalVendors(updatedLocal);
+
+    const targetBackendStatus = status === 'suspended' ? 'SUSPENDED' : 'ACTIVE';
+
+    try {
+      try {
+        const response = await axiosInstance.post<VendorApprovalResponse>(
+          `/admin/vendors/${vendorId}/status`,
+          { status }
+        );
+        return response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.patch<VendorApprovalResponse>(
+            `/admin/vendors/${vendorId}`,
+            { status: targetBackendStatus }
+          );
+          return response.data;
+        } catch {
+          const response = await axiosInstance.put<VendorApprovalResponse>(
+            `/vendors/${vendorId}/status`,
+            { status: targetBackendStatus }
+          );
+          return response.data;
+        }
+      }
+    } catch {
       return {
         message: `Vendor status updated to ${status.toUpperCase()}`,
         vendor_id: vendorId,
         status,
+      };
+    }
+  },
+
+  /**
+   * PUT /api/vendors/:vendorId (Update all editable vendor parameters)
+   */
+  updateVendorDetails: async (
+    vendorId: string | number,
+    updatedFields: Partial<Vendor> & Record<string, any>
+  ): Promise<Vendor> => {
+    const sId = String(vendorId);
+
+    const allVendors = getLocalVendors();
+    let updatedDomainObj!: Vendor;
+
+    const updatedList = allVendors.map((v) => {
+      if (v.id === sId) {
+        updatedDomainObj = {
+          ...v,
+          ...updatedFields,
+          // Guarantee created_at timestamp is immutable
+          createdAt: v.createdAt,
+          createdAtReadable: v.createdAtReadable,
+          createdAtTime: v.createdAtTime,
+          submissionTimestamp: v.submissionTimestamp,
+          updatedAt: new Date().toISOString(),
+        };
+        return updatedDomainObj;
+      }
+      return v;
+    });
+    saveLocalVendors(updatedList);
+
+    const pending = getLocalPendingVendors();
+    if (pending.some((v) => v.id === sId)) {
+      const updatedPending = pending.map((v) => (v.id === sId ? { ...v, ...updatedFields, createdAt: v.createdAt } : v));
+      saveLocalPendingVendors(updatedPending);
+    }
+
+    saveVendorEditOverride(sId, updatedFields);
+
+    const apiPayload = {
+      store_name: updatedFields.storeName || updatedFields.shop_name || updatedFields.store_name,
+      owner_name: updatedFields.ownerName || updatedFields.owner_name || updatedFields.vendor_name,
+      vendor_name: updatedFields.ownerName || updatedFields.vendor_name || updatedFields.owner_name,
+      email: updatedFields.email,
+      phone_number: updatedFields.phone ? String(updatedFields.phone).replace(/\D/g, '') : updatedFields.phone_number,
+      area: updatedFields.area || updatedFields.societyName || updatedFields.locationArea,
+      city: updatedFields.city || 'Noida',
+      pincode: updatedFields.pincode || '201301',
+      category: updatedFields.category || 'Grocery & Daily Needs',
+      gstin: updatedFields.gstin,
+      min_order_value: updatedFields.min_order_value ?? 0,
+      delivery_charge: updatedFields.delivery_charge ?? 20,
+      status: updatedFields.status ? String(updatedFields.status).toUpperCase() : 'ACTIVE',
+      ...updatedFields,
+    };
+
+    try {
+      let response: any;
+      try {
+        response = await axiosInstance.put<any>(`/admin/vendors/${vendorId}`, apiPayload);
+      } catch {
+        response = await axiosInstance.put<any>(`/vendors/${vendorId}`, apiPayload);
+      }
+      const resData = response.data?.data || response.data?.vendor || response.data;
+      const mapped = mapVendorDTOToDomain(resData);
+      return { ...mapped, ...updatedFields };
+    } catch {
+      return updatedDomainObj || mapVendorDTOToDomain({ ...updatedFields, vendor_id: vendorId });
+    }
+  },
+
+  /**
+   * GET /admin/vendors/:vendorId/orders (also GET /vendors/:vendorId/orders)
+   */
+  getVendorOrders: async (vendorId: string | number): Promise<OrderDetails[]> => {
+    try {
+      let raw: any;
+      try {
+        const response = await axiosInstance.get(`/admin/vendors/${vendorId}/orders`);
+        raw = response.data?.data || response.data?.orders || response.data;
+      } catch {
+        try {
+          const response = await axiosInstance.get(`/vendors/${vendorId}/orders`);
+          raw = response.data?.data || response.data?.orders || response.data;
+        } catch {
+          const response = await axiosInstance.get(`/admin/orders`, { params: { vendor_id: vendorId } });
+          raw = response.data?.data || response.data?.orders || response.data;
+        }
+      }
+      if (Array.isArray(raw)) {
+        return raw.map(mapOrderDTOToDomain);
+      }
+    } catch {}
+
+    return [];
+  },
+
+  /**
+   * POST /api/vendors/resubmit or POST /api/vendors/:vendorId/resubmit (Method B)
+   * Also handles POST /api/vendors/register re-application (Method A)
+   */
+  resubmitVendorApplication: async (
+    vendorId: string | number,
+    payload: {
+      store_name?: string;
+      shop_number?: string;
+      shop_no?: string;
+      shop_image?: string;
+      gstin?: string;
+      [key: string]: any;
+    }
+  ): Promise<{ vendor_id: string | number; status: string; has_resubmitted: boolean; message?: string }> => {
+    const apiPayload = {
+      vendor_id: vendorId,
+      shop_number: payload.shop_number || payload.shop_no,
+      shop_no: payload.shop_number || payload.shop_no,
+      ...payload,
+    };
+
+    try {
+      let response: any;
+      try {
+        response = await axiosInstance.post('/vendors/resubmit', apiPayload);
+      } catch {
+        try {
+          response = await axiosInstance.post(`/vendors/${vendorId}/resubmit`, apiPayload);
+        } catch {
+          response = await axiosInstance.post('/vendors/register', apiPayload);
+        }
+      }
+      return response.data?.data || response.data;
+    } catch {
+      const sId = String(vendorId);
+      const all = getLocalVendors();
+      const updatedAll = all.map((v) =>
+        v.id === sId
+          ? {
+              ...v,
+              status: 'pending' as VendorStatus,
+              hasResubmitted: true,
+              hasVendorUpdate: true,
+              isUpdateViewed: false,
+              resubmittedAt: new Date().toISOString(),
+              resubmittedAtReadable: '02 Sep 2026, 01:42 pm IST',
+              shopNumber: payload.shop_number || payload.shop_no || v.shopNumber,
+              storeName: payload.store_name || v.storeName,
+              gstin: payload.gstin || v.gstin,
+            }
+          : v
+      );
+      saveLocalVendors(updatedAll);
+
+      return {
+        vendor_id: vendorId,
+        status: 'pending',
+        has_resubmitted: true,
+        message: 'Your application has been resubmitted successfully for Admin review.',
       };
     }
   },

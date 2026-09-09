@@ -41,9 +41,9 @@ import { SubscriptionRenewalModal } from '../../components/subscriptions/Subscri
 import { SubscriptionInvoiceModal } from '../../components/subscriptions/SubscriptionInvoiceModal';
 
 const TIER_COLORS = {
-  free: '#6B7C70',
+  free: '#78716C',
   pro: '#10B981',
-  enterprise: '#18281F',
+  enterprise: '#211A19',
 };
 
 
@@ -66,10 +66,10 @@ export const SubscriptionsPage: React.FC = () => {
   const [renewingSubscription, setRenewingSubscription] = useState<Subscription | null>(null);
   const [invoicingSubscription, setInvoicingSubscription] = useState<Subscription | null>(null);
 
-  const subscriptions = rawSubscriptions;
+  const subscriptions = Array.isArray(rawSubscriptions) ? rawSubscriptions : [];
 
   const activeCount = subscriptions.filter(
-    (s) => s.daysRemaining > 0 && !s.isVendorBlocked && s.status !== 'suspended' && s.status !== 'blocked'
+    (s) => s && s.daysRemaining > 0 && !s.isVendorBlocked && s.status !== 'suspended' && s.status !== 'blocked'
   ).length;
   const pendingCount = subscriptions.filter((s) => s.status === 'pending' || s.vendorStatus === 'pending').length;
   const blockedCount = subscriptions.filter((s) => s.isVendorBlocked || s.status === 'suspended' || s.status === 'blocked').length;
@@ -106,17 +106,23 @@ export const SubscriptionsPage: React.FC = () => {
     });
   };
 
-  // Recharts Chart Dataset
-  const tierPieData = [
-    { name: 'Pro Plan', value: stats?.tierBreakdown.pro || 8, color: TIER_COLORS.pro },
-    { name: 'Enterprise Plan', value: stats?.tierBreakdown.enterprise || 4, color: TIER_COLORS.enterprise },
-    { name: 'Free Tier', value: stats?.tierBreakdown.free || 2, color: TIER_COLORS.free },
-  ];
+  // Recharts Chart Dataset dynamically computed
+  const tierPieData = React.useMemo(() => {
+    const proCount = subscriptions.filter((s) => s.tier === 'pro').length || stats?.tierBreakdown.pro || 0;
+    const entCount = subscriptions.filter((s) => s.tier === 'enterprise').length || stats?.tierBreakdown.enterprise || 0;
+    const freeCount = subscriptions.filter((s) => s.tier === 'free').length || stats?.tierBreakdown.free || 0;
+
+    return [
+      { name: 'Pro Plan', value: proCount, color: TIER_COLORS.pro },
+      { name: 'Enterprise Plan', value: entCount, color: TIER_COLORS.enterprise },
+      { name: 'Free Tier', value: freeCount, color: TIER_COLORS.free },
+    ];
+  }, [subscriptions, stats]);
 
   const columns: Column<Subscription>[] = [
     {
       header: 'S.No.',
-      cell: (_item, index) => <span className="font-mono text-xs text-[#18281F] font-bold">{index + 1}</span>,
+      cell: (_item, index) => <span className="font-mono text-xs text-[#211A19] font-bold">{index + 1}</span>,
     },
 
     {
@@ -229,22 +235,22 @@ export const SubscriptionsPage: React.FC = () => {
       <div className="kpi-grid">
         <StatCard
           title="Active Subscriptions"
-          value={stats?.totalActiveSubscriptions || (subscriptions.length > 0 ? subscriptions.length : 16)}
-          change="+3 new this month"
+          value={activeCount}
+          change={`${activeCount} Active Plans`}
           isPositive={true}
           icon={<CreditCard size={22} />}
         />
         <StatCard
           title="Monthly Recurring Revenue"
-          value={formatCurrency(stats?.mrr || (stats?.totalActiveSubscriptions ? stats.totalActiveSubscriptions * 2999 : 47984))}
-          change="+18.4% MRR"
+          value={formatCurrency(stats?.mrr !== undefined ? stats.mrr : subscriptions.filter((s) => s.daysRemaining > 0 && !s.isVendorBlocked).reduce((sum, s) => sum + (s.price || 0), 0))}
+          change="Real-time Subscriptions MRR"
           isPositive={true}
           icon={<IndianRupee size={22} />}
         />
         <StatCard
           title="Upcoming Renewals (30 Days)"
-          value={`${stats?.upcomingRenewalsCount || 4} Vendors`}
-          change="Automated reminders sent"
+          value={`${expiringSoonCount} Vendors`}
+          change={`${expiringSoonCount} Expediting Renewal`}
           isPositive={true}
           icon={<Calendar size={22} />}
         />

@@ -47,30 +47,32 @@ export const SupportPage: React.FC = () => {
 
   const [priorityFocus, setPriorityFocus] = useState<string>('all');
 
-  const { data: rawTickets = [], isLoading } = useTickets({
+  const { data: rawTickets, isLoading } = useTickets({
     category: categoryFilter,
     search: searchTerm,
   });
+
+  const tickets = useMemo(() => (Array.isArray(rawTickets) ? rawTickets : []), [rawTickets]);
 
   const updateStatusMutation = useUpdateTicketStatus();
 
   const counts = useMemo(() => {
     return {
-      all: rawTickets.length,
-      open: rawTickets.filter((t) => t.status === 'open').length,
-      in_progress: rawTickets.filter((t) => t.status === 'in_progress').length,
-      resolved: rawTickets.filter((t) => t.status === 'resolved').length,
-      urgent: rawTickets.filter((t) => t.priority === 'urgent').length,
-      high: rawTickets.filter((t) => t.priority === 'high').length,
-      medium: rawTickets.filter((t) => t.priority === 'medium').length,
-      low: rawTickets.filter((t) => t.priority === 'low').length,
+      all: tickets.length,
+      open: tickets.filter((t) => t && t.status === 'open').length,
+      in_progress: tickets.filter((t) => t && t.status === 'in_progress').length,
+      resolved: tickets.filter((t) => t && t.status === 'resolved').length,
+      urgent: tickets.filter((t) => t && t.priority === 'urgent').length,
+      high: tickets.filter((t) => t && t.priority === 'high').length,
+      medium: tickets.filter((t) => t && t.priority === 'medium').length,
+      low: tickets.filter((t) => t && t.priority === 'low').length,
     };
-  }, [rawTickets]);
+  }, [tickets]);
 
   const allTickets = useMemo(() => {
-    let list = rawTickets;
+    let list = tickets;
     if (activeTab !== 'all') {
-      list = list.filter((t) => t.status === activeTab);
+      list = list.filter((t) => t && t.status === activeTab);
     }
     if (priorityFocus !== 'all') {
       list = list.filter((t) => t.priority === priorityFocus);
@@ -123,14 +125,14 @@ export const SupportPage: React.FC = () => {
       />
 
       {/* View Switcher Tabs & Live Web Intake Stream */}
-      <div className="flex items-center justify-between p-2 bg-white border border-[#E4DCC9] rounded-2xl shadow-sm flex-wrap gap-2">
+      <div className="flex items-center justify-between p-2 bg-white border border-[#E7DFD5] rounded-2xl shadow-xs flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'analytics'
-                ? 'bg-[#18281F] text-white shadow-sm'
-                : 'bg-[#FAF9F6] text-[#6B7C70] hover:bg-[#EFE8D8]'
+                ? 'bg-[#541D26] text-white shadow-xs border border-[#C8A878]/30'
+                : 'bg-[#FAF8F5] text-[#78716C] hover:bg-[#EEE5DA]'
             }`}
             onClick={() => setViewMode('analytics')}
           >
@@ -140,10 +142,10 @@ export const SupportPage: React.FC = () => {
 
           <button
             type="button"
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               viewMode === 'queue'
-                ? 'bg-[#18281F] text-white shadow-sm'
-                : 'bg-[#FAF9F6] text-[#6B7C70] hover:bg-[#EFE8D8]'
+                ? 'bg-[#541D26] text-white shadow-xs border border-[#C8A878]/30'
+                : 'bg-[#FAF8F5] text-[#78716C] hover:bg-[#EEE5DA]'
             }`}
             onClick={() => setViewMode('queue')}
           >
@@ -153,14 +155,14 @@ export const SupportPage: React.FC = () => {
         </div>
 
         {/* Interactive Priority Focus View Selector */}
-        <div className="px-3.5 py-1.5 bg-[#FAF9F6] border border-[#E4DCC9] rounded-xl flex items-center gap-2 text-xs font-bold shadow-sm">
-          <span className="text-[#6B7C70] flex items-center gap-1.5 whitespace-nowrap">
+        <div className="px-3.5 py-1.5 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2 text-xs font-bold shadow-xs">
+          <span className="text-[#78716C] flex items-center gap-1.5 whitespace-nowrap">
             <Flame size={14} className="text-rose-500" /> Priority Focus View:
           </span>
           <select
             value={priorityFocus}
             onChange={(e) => setPriorityFocus(e.target.value)}
-            className="bg-transparent text-xs font-bold text-[#18281F] outline-none cursor-pointer"
+            className="bg-transparent text-xs font-bold text-[#211A19] outline-none cursor-pointer"
           >
             <option value="all">All Priorities ({counts.all})</option>
             <option value="urgent">🔥 Urgent SLA ({counts.urgent})</option>
@@ -190,7 +192,7 @@ export const SupportPage: React.FC = () => {
             <StatCard
               title="Total Support Inquiries"
               value={counts.all}
-              change="Real-time ticket volume"
+              change={`${counts.all} Total Tickets`}
               isPositive={true}
               icon={<Headphones size={22} />}
               onClick={() => setActiveTab('all')}
@@ -198,15 +200,15 @@ export const SupportPage: React.FC = () => {
             <StatCard
               title="Open Tickets"
               value={counts.open}
-              change="Awaiting staff action"
-              isPositive={false}
+              change={`${counts.open} Awaiting Staff Action`}
+              isPositive={counts.open === 0}
               icon={<AlertTriangle size={22} />}
               onClick={() => setActiveTab('open')}
             />
             <StatCard
               title="In Progress"
               value={counts.in_progress}
-              change="Under investigation"
+              change={`${counts.in_progress} Under Active Review`}
               isPositive={true}
               icon={<Clock size={22} />}
               onClick={() => setActiveTab('in_progress')}
@@ -214,7 +216,7 @@ export const SupportPage: React.FC = () => {
             <StatCard
               title="Resolved Tickets"
               value={counts.resolved}
-              change="SLA compliant"
+              change={`${counts.resolved} Resolved Items`}
               isPositive={true}
               icon={<CheckCircle2 size={22} />}
               onClick={() => setActiveTab('resolved')}

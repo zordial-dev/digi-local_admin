@@ -13,80 +13,7 @@ export interface SubscriptionListParams {
   status?: string;
 }
 
-const INITIAL_SUBSCRIPTIONS_MOCK: Subscription[] = [
-  {
-    id: 'sub-90',
-    vendorId: '90',
-    storeName: 'Apna Store',
-    ownerName: 'Apna Store Grocery',
-    societyName: 'Manglam Aananda',
-    tier: 'pro',
-    price: 2999,
-    startDate: '2026-08-07',
-    renewalDate: '2026-12-31',
-    daysRemaining: 141,
-    status: 'active',
-    payments: [],
-  },
-  {
-    id: 'sub-89',
-    vendorId: '89',
-    storeName: 'GS Cafe',
-    ownerName: 'GS Cafe',
-    societyName: 'Manglam Aananda',
-    tier: 'pro',
-    price: 2999,
-    startDate: '2026-08-07',
-    renewalDate: '2026-12-31',
-    daysRemaining: 141,
-    status: 'active',
-    payments: [],
-  },
-  {
-    id: 'sub-79',
-    vendorId: '79',
-    storeName: 'FreshMart Grocery',
-    ownerName: 'Rajesh Sharma',
-    societyName: 'Anupam apartment',
-    tier: 'pro',
-    price: 2999,
-    startDate: '2026-08-07',
-    renewalDate: '2026-12-31',
-    daysRemaining: 141,
-    status: 'active',
-    payments: [],
-  },
-  {
-    id: 'sub-p1',
-    vendorId: 'v-105',
-    storeName: 'QuickMart Convenience Store',
-    ownerName: 'Vikram Singh',
-    societyName: 'Manglam Aananda',
-    tier: 'pro',
-    price: 2999,
-    startDate: '2026-08-10',
-    renewalDate: '2026-12-31',
-    daysRemaining: 141,
-    status: 'pending',
-    vendorStatus: 'pending',
-    payments: [],
-  },
-  {
-    id: 'sub-p2',
-    vendorId: 'v-106',
-    storeName: 'Green Leaf Organic Vegetables',
-    ownerName: 'Ananya Sharma',
-    societyName: 'Anupam Society',
-    tier: 'enterprise',
-    price: 9999,
-    startDate: '2026-08-11',
-    renewalDate: '2026-12-31',
-    daysRemaining: 141,
-    status: 'pending',
-    vendorStatus: 'pending',
-    payments: [],
-  },
-];
+const INITIAL_SUBSCRIPTIONS_MOCK: Subscription[] = [];
 
 const mapSubscriptionDTOToDomain = (raw: any): Subscription => {
   const sId = raw.id || raw.subscription_id || `sub-${raw.vendor_id || '1'}`;
@@ -137,51 +64,7 @@ export const subscriptionsApi = {
       } catch {}
     }
 
-    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
-      // Cross-reference live backend vendors list to synthesize live subscriptions
-      try {
-        const vendors = await vendorsApi.getAllVendors();
-        let pendingVendors: any[] = [];
-        try {
-          pendingVendors = await vendorsApi.getPendingRequests();
-        } catch {}
-
-        const allVendors = [...vendors, ...pendingVendors];
-
-        if (allVendors && allVendors.length > 0) {
-          const now = new Date();
-          const mappedSubs = allVendors.map((v, idx) => {
-            const renewalDateStr = v.subscriptionRenewalDate || '2026-12-31';
-            const renewal = new Date(renewalDateStr);
-            const diffTime = renewal.getTime() - now.getTime();
-            const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-            const tier = (v.subscriptionTier as any) || (idx % 2 === 0 ? 'pro' : 'enterprise');
-            const isBlocked = v.status === 'suspended' || v.status === 'blocked';
-            const isPending = v.status === 'pending';
-
-            return {
-              id: `sub-${v.id}`,
-              vendorId: String(v.id),
-              storeName: v.storeName || 'Store',
-              ownerName: v.ownerName || 'Owner',
-              societyName: v.societyName || 'Unassigned',
-              tier: tier === 'subscribed' ? 'pro' : tier,
-              price: tier === 'enterprise' ? 9999 : 2999,
-              startDate: v.createdAt || '2026-01-01',
-              renewalDate: renewalDateStr,
-              daysRemaining,
-              status: isBlocked ? 'suspended' : isPending ? 'pending' : (daysRemaining < 15 ? 'expiring_soon' : 'active'),
-              isVendorBlocked: isBlocked,
-              vendorStatus: v.status || (isPending ? 'pending' : 'active'),
-              payments: v.payments || [],
-            } satisfies Subscription;
-          });
-          rawData = mappedSubs;
-        }
-      } catch {}
-    }
-
-    if (Array.isArray(rawData) && rawData.length > 0) {
+    if (Array.isArray(rawData)) {
       return rawData.map(mapSubscriptionDTOToDomain).filter((sub) => {
         if (params?.search) {
           const query = params.search.toLowerCase();
@@ -253,12 +136,12 @@ export const subscriptionsApi = {
       const raw = response.data?.data || response.data;
       if (raw && (raw.mrr !== undefined || raw.totalActiveSubscriptions !== undefined)) {
         return {
-          totalActiveSubscriptions: Number(raw.totalActiveSubscriptions ?? raw.active_subscriptions ?? 16),
-          mrr: Number(raw.mrr ?? 47984),
-          upcomingRenewalsCount: Number(raw.upcomingRenewalsCount ?? raw.expiring_soon_count ?? 4),
+          totalActiveSubscriptions: Number(raw.totalActiveSubscriptions ?? raw.active_subscriptions ?? 0),
+          mrr: Number(raw.mrr ?? 0),
+          upcomingRenewalsCount: Number(raw.upcomingRenewalsCount ?? raw.expiring_soon_count ?? 0),
           tierBreakdown: raw.tierBreakdown || raw.tier_breakdown || {
             free: 0,
-            pro: 16,
+            pro: 0,
             enterprise: 0,
           },
         };
@@ -272,27 +155,28 @@ export const subscriptionsApi = {
     }
 
     try {
-      const vendors = await vendorsApi.getAllVendors();
-      const activeCount = vendors.filter((v) => v.status === 'active').length || 16;
+      const subs = await subscriptionsApi.getSubscriptions();
+      const activeSubs = subs.filter((s) => s.status === 'active' || s.daysRemaining > 0);
+      const mrrSum = activeSubs.reduce((sum, s) => sum + (s.price || 0), 0);
       return {
-        totalActiveSubscriptions: activeCount,
-        mrr: activeCount * 2999,
-        upcomingRenewalsCount: 4,
+        totalActiveSubscriptions: activeSubs.length,
+        mrr: mrrSum,
+        upcomingRenewalsCount: subs.filter((s) => s.daysRemaining <= 15).length,
         tierBreakdown: {
-          free: 0,
-          pro: activeCount,
-          enterprise: 0,
+          free: subs.filter((s) => s.tier === 'free').length,
+          pro: subs.filter((s) => s.tier === 'pro').length,
+          enterprise: subs.filter((s) => s.tier === 'enterprise').length,
         },
       };
     } catch {}
 
     return {
-      totalActiveSubscriptions: 16,
-      mrr: 47984,
-      upcomingRenewalsCount: 4,
+      totalActiveSubscriptions: 0,
+      mrr: 0,
+      upcomingRenewalsCount: 0,
       tierBreakdown: {
         free: 0,
-        pro: 16,
+        pro: 0,
         enterprise: 0,
       },
     };

@@ -7,6 +7,7 @@ import { Button } from '../../components/common/Button/Button';
 import { Badge } from '../../components/common/Badge/Badge';
 import { useSocieties } from '../../hooks/useSocieties';
 import { useVendors } from '../../hooks/useVendors';
+import { useDashboardData } from '../../hooks/useDashboard';
 import { usePermission } from '../../hooks/usePermission';
 import { formatCurrency, formatDate } from '../../utils/formatters.utils';
 import {
@@ -29,30 +30,22 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const REVENUE_ANALYTICS_DATA = [
-  { month: 'Jan', revenue: 140000, vendors: 12 },
-  { month: 'Feb', revenue: 185000, vendors: 15 },
-  { month: 'Mar', revenue: 210000, vendors: 18 },
-  { month: 'Apr', revenue: 260000, vendors: 22 },
-  { month: 'May', revenue: 310000, vendors: 28 },
-  { month: 'Jun', revenue: 420000, vendors: 35 },
-];
-
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: societies = [] } = useSocieties();
-  const { data: rawVendors = [] } = useVendors();
+  const { data: rawSocieties } = useSocieties();
+  const { data: rawVendors } = useVendors();
   const { hasPower } = usePermission();
 
   const [pendingVisibleCount, setPendingVisibleCount] = React.useState(3);
   const [recentVisibleCount, setRecentVisibleCount] = React.useState(3);
 
-  const vendors = rawVendors;
+  const societies = Array.isArray(rawSocieties) ? rawSocieties : [];
+  const vendors = Array.isArray(rawVendors) ? rawVendors : [];
 
   const totalVendors = vendors.length;
-  const activeVendorsCount = vendors.filter((v) => v.status === 'active').length;
-  const pendingVendors = vendors.filter((v) => v.status === 'pending');
-  const activeSocietiesCount = societies.filter((s) => s.status === 'active').length;
+  const activeVendorsCount = vendors.filter((v) => v && v.status === 'active').length;
+  const pendingVendors = vendors.filter((v) => v && v.status === 'pending');
+  const activeSocietiesCount = societies.filter((s) => s && s.status === 'active').length;
 
   const handlePendingScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -68,7 +61,35 @@ export const OverviewPage: React.FC = () => {
     }
   };
 
-  const totalPlatformRevenue = vendors.reduce((sum, v) => sum + (v.totalEarnings || 0), 0) || 1663000;
+  const totalPlatformRevenue = React.useMemo(() => {
+    return vendors.reduce((sum, v) => (v ? sum + Number(v.totalEarnings || 0) : sum), 0);
+  }, [vendors]);
+
+  const revenueChartData = React.useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
+    const map: Record<string, { revenue: number; vendors: number }> = {};
+    months.forEach((m) => {
+      map[m] = { revenue: 0, vendors: 0 };
+    });
+
+    vendors.forEach((v) => {
+      if (!v) return;
+      const date = new Date(v.createdAt || Date.now());
+      const monthStr = date.toLocaleString('en-US', { month: 'short' });
+      const vendorRev = Number(v.totalEarnings || 0);
+
+      if (map[monthStr]) {
+        map[monthStr].revenue += vendorRev;
+        map[monthStr].vendors += 1;
+      }
+    });
+
+    return months.map((m) => ({
+      month: m,
+      revenue: map[m].revenue,
+      vendors: map[m].vendors,
+    }));
+  }, [vendors]);
 
   return (
     <div className="overview-page">
@@ -93,7 +114,7 @@ export const OverviewPage: React.FC = () => {
           <StatCard
             title="Total Platform Revenue"
             value={formatCurrency(totalPlatformRevenue)}
-            change="+24.8% vs last month"
+            change={`${activeVendorsCount} Active Monetized Merchants`}
             isPositive={true}
             icon={<IndianRupee size={22} />}
             onClick={() => navigate('/dashboard/subscriptions')}
@@ -103,7 +124,7 @@ export const OverviewPage: React.FC = () => {
           <StatCard
             title="Active Vendors"
             value={activeVendorsCount}
-            change="+12 onboarding"
+            change={`${pendingVendors.length} Onboarding Pending`}
             isPositive={true}
             icon={<Store size={22} />}
             onClick={() => navigate('/dashboard/vendors')}
@@ -113,7 +134,7 @@ export const OverviewPage: React.FC = () => {
           <StatCard
             title="Active Societies"
             value={activeSocietiesCount}
-            change="+3 this month"
+            change={`${societies.length} Total Coverage Areas`}
             isPositive={true}
             icon={<CreditCard size={22} />}
             onClick={() => navigate('/dashboard/societies')}
@@ -122,8 +143,8 @@ export const OverviewPage: React.FC = () => {
         {hasPower('SUBSCRIPTIONS') && (
           <StatCard
             title="Platform Growth Rate"
-            value="34.2%"
-            change="+5.1% acceleration"
+            value={`${totalVendors > 0 ? Math.round((activeVendorsCount / totalVendors) * 100) : 0}%`}
+            change="Active Merchant Ratio"
             isPositive={true}
             icon={<TrendingUp size={22} />}
             onClick={() => navigate('/dashboard/subscriptions')}
@@ -140,33 +161,33 @@ export const OverviewPage: React.FC = () => {
                 <h3 className="chart-title">Monthly Revenue Trend (₹)</h3>
                 <p className="chart-subtitle">Gross subscription revenue collected</p>
               </div>
-              <Badge variant="success">+32.4% YoY</Badge>
+              <Badge variant="success">Live API Sync</Badge>
             </div>
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={REVENUE_ANALYTICS_DATA}>
+                <AreaChart data={revenueChartData}>
                   <defs>
                     <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#C4A066" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#C4A066" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#C8A878" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#C8A878" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E4DCC9" />
-                  <XAxis dataKey="month" stroke="#6B7C70" fontSize={12} />
-                  <YAxis stroke="#6B7C70" fontSize={12} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E7DFD5" />
+                  <XAxis dataKey="month" stroke="#78716C" fontSize={12} />
+                  <YAxis stroke="#78716C" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FAF9F6',
-                      borderColor: '#E4DCC9',
+                      backgroundColor: '#FAF8F5',
+                      borderColor: '#E7DFD5',
                       borderRadius: '0.875rem',
-                      color: '#18281F',
+                      color: '#211A19',
                     }}
                     formatter={(val: any) => [formatCurrency(Number(val) || 0), 'Revenue']}
                   />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#18281F"
+                    stroke="#541D26"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorRev)"
@@ -188,19 +209,19 @@ export const OverviewPage: React.FC = () => {
             </div>
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={REVENUE_ANALYTICS_DATA}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E4DCC9" />
-                  <XAxis dataKey="month" stroke="#6B7C70" fontSize={12} />
-                  <YAxis stroke="#6B7C70" fontSize={12} />
+                <BarChart data={revenueChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E7DFD5" />
+                  <XAxis dataKey="month" stroke="#78716C" fontSize={12} />
+                  <YAxis stroke="#78716C" fontSize={12} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FAF9F6',
-                      borderColor: '#E4DCC9',
+                      backgroundColor: '#FAF8F5',
+                      borderColor: '#E7DFD5',
                       borderRadius: '0.875rem',
-                      color: '#18281F',
+                      color: '#211A19',
                     }}
                   />
-                  <Bar dataKey="vendors" fill="#18281F" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="vendors" fill="#541D26" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Modal } from '../common/Modal/Modal';
+import { Drawer } from '../common/Drawer/Drawer';
 import { Input } from '../common/Input/Input';
 import { Button } from '../common/Button/Button';
 import { PowerSectionCheckboxGrid } from './PowerSectionCheckboxGrid';
 import type { CreateSubAdminRequest, PowerSection } from '../../types/rbac.types';
 import { User, Mail, Key, ShieldCheck } from 'lucide-react';
+
+import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/usePermission';
 
 export interface CreateSubAdminModalProps {
   isOpen: boolean;
@@ -19,10 +22,14 @@ export const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { user } = useAuth();
+  const { isSuperAdmin, userPowers } = usePermission();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedPowers, setSelectedPowers] = useState<PowerSection[]>([
+  const [selectedPowers, setSelectedPowers] = useState<PowerSection[]>([]);
+  const [allowedDelegationPowers, setAllowedDelegationPowers] = useState<PowerSection[]>([
     'SOCIETIES',
     'VENDORS',
   ]);
@@ -31,11 +38,24 @@ export const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) return;
 
+    // Sub-admins can only delegate powers they themselves possess (excluding SUB_ADMINS)
+    const sanitizedPowers = isSuperAdmin
+      ? selectedPowers
+      : selectedPowers.filter((p) => p !== 'SUB_ADMINS' && userPowers.includes(p));
+
+    const creatorName = isSuperAdmin
+      ? 'Super Admin'
+      : `Sub-Admin ${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Sub-Admin Staff';
+
     onSubmit({
       name,
       email,
       password,
-      powers: selectedPowers,
+      powers: sanitizedPowers,
+      allowedDelegationPowers: isSuperAdmin && selectedPowers.includes('SUB_ADMINS') ? allowedDelegationPowers : undefined,
+      createdBy: creatorName,
+      creatorId: isSuperAdmin ? 'super-admin' : (user?.id || 'sub-aarushi'),
+      createdRole: isSuperAdmin ? 'super_admin' : 'sub_admin',
     });
     setName('');
     setEmail('');
@@ -43,14 +63,14 @@ export const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({
   };
 
   return (
-    <Modal
+    <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title="Create Sub-Admin Account"
       subtitle="Delegate specific power sections to a company team member."
-      size="lg"
+      size="xl"
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-4 text-xs font-sans">
         <Input
           label="Sub-Admin Full Name"
           placeholder="e.g. Vikram Mehta"
@@ -85,8 +105,61 @@ export const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({
           onChange={setSelectedPowers}
         />
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-700/50">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        {/* Super Admin Delegation Power Configuration for Sub-Admin Managers */}
+        {isSuperAdmin && selectedPowers.includes('SUB_ADMINS') && (
+          <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl flex flex-col gap-3 font-sans shadow-xs">
+            <div className="flex items-center justify-between flex-wrap gap-1">
+              <span className="text-xs font-bold text-amber-950 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <ShieldCheck size={16} className="text-amber-700" /> Delegation Powers Permitted for this Sub-Admin
+              </span>
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-200 px-2 py-0.5 rounded border border-amber-300 font-mono">
+                SUPER ADMIN RULE
+              </span>
+            </div>
+            <p className="text-xs text-[#211A19]">
+              Select which specific power sections this Sub-Admin manager is allowed to grant when creating child sub-admins:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {['SOCIETIES', 'VENDORS', 'SUBSCRIPTIONS', 'SUPPORT', 'SETTINGS'].map((powerId) => {
+                const isChecked = allowedDelegationPowers.includes(powerId as PowerSection);
+                const labelMap: Record<string, string> = {
+                  SOCIETIES: 'Societies & Area Management',
+                  VENDORS: 'User & Vendor',
+                  SUBSCRIPTIONS: 'Subscriptions & Financials',
+                  SUPPORT: 'Support Desk',
+                  SETTINGS: 'Platform Settings',
+                };
+
+                return (
+                  <label
+                    key={powerId}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs font-medium cursor-pointer transition-all ${
+                      isChecked ? 'bg-white border-amber-400 text-amber-950 font-bold' : 'bg-[#FAF8F5] border-[#E7DFD5] text-slate-500'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAllowedDelegationPowers([...allowedDelegationPowers, powerId as PowerSection]);
+                        } else {
+                          setAllowedDelegationPowers(allowedDelegationPowers.filter((p) => p !== powerId));
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                    />
+                    {labelMap[powerId] || powerId}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-[#E7DFD5] mt-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -100,6 +173,6 @@ export const CreateSubAdminModal: React.FC<CreateSubAdminModalProps> = ({
           </Button>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   );
 };

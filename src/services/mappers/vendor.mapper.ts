@@ -1,5 +1,40 @@
 import type { Vendor, RawVendorDTO, VendorStatus } from '../../types/vendor.types';
 
+const OVERRIDES_STORAGE_KEY = 'digilocal_vendor_status_overrides';
+const EDITS_STORAGE_KEY = 'digilocal_vendor_edit_overrides';
+
+export const getVendorStatusOverrides = (): Record<string, VendorStatus> => {
+  try {
+    const raw = localStorage.getItem(OVERRIDES_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+};
+
+export const setVendorStatusOverride = (vendorId: string, status: VendorStatus) => {
+  try {
+    const overrides = getVendorStatusOverrides();
+    overrides[vendorId] = status;
+    localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+  } catch {}
+};
+
+export const getVendorEditOverrides = (): Record<string, Partial<Vendor>> => {
+  try {
+    const raw = localStorage.getItem(EDITS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+};
+
+export const saveVendorEditOverride = (vendorId: string, fields: Partial<Vendor>) => {
+  try {
+    const edits = getVendorEditOverrides();
+    edits[vendorId] = { ...(edits[vendorId] || {}), ...fields };
+    localStorage.setItem(EDITS_STORAGE_KEY, JSON.stringify(edits));
+  } catch {}
+};
+
 export const mapVendorDTOToDomain = (raw: any): Vendor => {
   const vId = raw.vendor_id || raw.id || '1';
   const statusLower = String(raw.status || 'ACTIVE').toLowerCase();
@@ -10,39 +45,212 @@ export const mapVendorDTOToDomain = (raw: any): Vendor => {
     normalizedStatus = 'suspended';
   } else if (statusLower === 'pending' || statusLower === 'onboarding') {
     normalizedStatus = 'pending';
+  } else if (statusLower === 'on_hold' || statusLower === 'hold' || statusLower === 'onhold') {
+    normalizedStatus = 'on_hold';
+  } else if (statusLower === 'rejected' || statusLower === 'declined') {
+    normalizedStatus = 'rejected';
   } else if (statusLower === 'expired') {
     normalizedStatus = 'expired';
   } else {
     normalizedStatus = 'active';
   }
 
-  const ordersCount = Number(raw.total_orders ?? raw.total_orders_count ?? raw.totalOrdersCount ?? raw.totalOrders ?? 0);
-  const earnings = Number(raw.total_revenue ?? raw.total_earnings ?? raw.totalEarnings ?? 0);
-  const phone = raw.phone_number || raw.phone || '+91 98765 43210';
-  const formattedPhone = phone.startsWith('+91') ? phone : `+91 ${phone}`;
+  // Check persistent admin status overrides
+  const overrides = getVendorStatusOverrides();
+  if (overrides[String(vId)]) {
+    normalizedStatus = overrides[String(vId)];
+  }
+
+  const ordersCount = Number(raw.total_orders ?? raw.total_orders_count ?? raw.totalOrdersCount ?? raw.totalOrders ?? raw.orders_count ?? 0);
+  
+  const rawPayments = Array.isArray(raw.payments) ? raw.payments : [];
+  const paymentsSum = rawPayments.reduce((sum: number, p: any) => sum + Number(p.amount || p.total_amount || 0), 0);
+
+  const rawOrders = Array.isArray(raw.orders) ? raw.orders : [];
+  const ordersSum = rawOrders.reduce((sum: number, o: any) => sum + Number(o.total_amount || o.totalAmount || o.amount || 0), 0);
+
+  let earnings = Number(
+    raw.total_revenue ??
+    raw.total_earnings ??
+    raw.totalEarnings ??
+    raw.revenue ??
+    raw.earnings ??
+    raw.total_amount ??
+    raw.subscription_amount ??
+    (paymentsSum > 0 ? paymentsSum : 0) ??
+    (ordersSum > 0 ? ordersSum : 0) ??
+    0
+  );
+  if (isNaN(earnings) || earnings < 0) earnings = 0;
+  const countryCode = raw.country_code || raw.countryCode || '+91';
+  const rawPhoneNumber = raw.phone_number || raw.phoneNumber || raw.phone || raw.mobile || '';
+  const formattedPhone = rawPhoneNumber
+    ? (rawPhoneNumber.startsWith('+') ? rawPhoneNumber : `${countryCode} ${rawPhoneNumber}`)
+    : 'N/A';
+
+  const createdAtIso = raw.created_at_ist || raw.created_at || raw.createdAt || raw.vendor_created_at || new Date().toISOString();
+  const createdAtIst = raw.created_at_ist || raw.createdAtIst || createdAtIso;
+  const createdAtReadable = raw.created_at_readable || raw.createdAtReadable || undefined;
+  const submissionTimestamp = createdAtReadable || raw.submission_timestamp || raw.submissionTimestamp || createdAtIso;
+
+  const rawGstin = raw.gstin || raw.gst_number || raw.gstin_number || '';
+  const rawPan = raw.pan_number || raw.panNumber || raw.pan || '';
+  const rawFssai = raw.fssai_number || raw.fssaiNumber || raw.fssai || '';
+  const rawStoreName = raw.shop_name || raw.store_name || raw.shopName || raw.storeName || raw.vendor_name || raw.name || 'Vendor Store';
+  const rawOwnerName = raw.vendor_name || raw.owner_name || raw.vendorName || raw.ownerName || raw.name || 'Vendor Owner';
+  
+  const shopNumber = raw.shop_number || raw.shop_no || raw.shopNumber || raw.shopNo || '';
+  const area = raw.area || raw.location_area || raw.locationArea || raw.society_name || raw.societyName || '';
+  const city = raw.city || '';
+  const state = raw.state || '';
+  const pincode = raw.pincode || '';
+
+  const constructedAddress = [shopNumber, area, city, state, pincode].filter(Boolean).join(', ');
+  const rawAddress = raw.address || raw.full_address || raw.street_address || raw.location || constructedAddress || shopNumber || '';
+  const rawLocationArea = area || raw.location_area || raw.locationArea || raw.society_name || raw.societyName || '';
+  const rawSocietyName = raw.society_name || raw.societyName || area || raw.location_name || '';
+
+  const avatarUrl =
+    raw.shop_image ||
+    raw.shopImage ||
+    raw.logo ||
+    raw.avatar_url ||
+    raw.avatarUrl ||
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800';
+
+  const createdAtTime = raw.created_at_time || raw.createdAtTime || undefined;
+  const resubmittedAtReadable = raw.resubmitted_at_readable || raw.resubmittedAtReadable || undefined;
+
+  // Dynamically map resubmitted field changes strictly based on backend response
+  let resubmittedChanges = raw.resubmitted_changes || raw.resubmittedChanges || undefined;
+  const rawUpdatedFields = raw.updated_fields || raw.updatedFieldKeys || undefined;
+
+  if (Array.isArray(rawUpdatedFields) && rawUpdatedFields.length > 0) {
+    resubmittedChanges = [];
+    if (rawUpdatedFields.includes('gstin') && rawGstin) {
+      resubmittedChanges.push({ field: 'gstin', label: '1. GSTIN Tax Code', oldValue: raw.old_gstin || undefined, newValue: rawGstin });
+    }
+    if (rawUpdatedFields.includes('panNumber') && rawPan) {
+      resubmittedChanges.push({ field: 'panNumber', label: '2. PAN Card Number', oldValue: raw.old_pan || undefined, newValue: rawPan });
+    }
+    if (rawUpdatedFields.includes('ownerName') && rawOwnerName) {
+      resubmittedChanges.push({ field: 'ownerName', label: '3. Owner Full Name', oldValue: raw.old_owner_name || undefined, newValue: rawOwnerName });
+    }
+    if (rawUpdatedFields.includes('storeName') && rawStoreName) {
+      resubmittedChanges.push({ field: 'storeName', label: '4. Business / Store Name', oldValue: raw.old_store_name || undefined, newValue: rawStoreName });
+    }
+    if (rawUpdatedFields.includes('address') && rawAddress) {
+      resubmittedChanges.push({ field: 'address', label: '5. Complete Detailed Address', oldValue: raw.old_address || undefined, newValue: rawAddress });
+    }
+    if (rawUpdatedFields.includes('email') && raw.email) {
+      resubmittedChanges.push({ field: 'email', label: '6. Corporate Email', oldValue: raw.old_email || undefined, newValue: raw.email });
+    }
+    if (rawUpdatedFields.includes('phone') && formattedPhone) {
+      resubmittedChanges.push({ field: 'phone', label: '7. Contact Phone Number', oldValue: raw.old_phone || undefined, newValue: formattedPhone });
+    }
+  }
+
+  const updatedFieldKeys = Array.isArray(rawUpdatedFields) && rawUpdatedFields.length > 0
+    ? rawUpdatedFields
+    : (resubmittedChanges && resubmittedChanges.length > 0 ? resubmittedChanges.map((c: any) => c.field) : []);
 
   return {
     id: String(vId),
-    storeName: raw.store_name || raw.storeName || 'Vendor Store',
-    ownerName: raw.owner_name || raw.vendor_name || raw.ownerName || raw.name || 'Vendor Owner',
-    category: raw.category || raw.store_category || 'Grocery & Organic Fresh',
-    email: raw.email || 'vendor@digilocal.com',
+    storeName: rawStoreName,
+    ownerName: rawOwnerName,
+    category: raw.category || raw.store_category || 'General Store & Provisions',
+    vendorType: raw.vendor_type || raw.vendorType || 'product',
+    email: raw.email || '',
     phone: formattedPhone,
-    address: raw.location || raw.address || 'Block B, Sector 62',
-    societyName: raw.society_name || raw.societyName || (raw.society_id ? `Society #${raw.society_id}` : 'Unassigned'),
+    countryCode,
+    phoneNumber: rawPhoneNumber,
+    whatsappNumber: raw.whatsapp_number || raw.whatsappNumber || rawPhoneNumber,
+    address: rawAddress,
+    description: raw.description || raw.store_description || raw.storeDescription || raw.about || '',
+    shopNumber,
+    area,
+    city,
+    state,
+    pincode,
+    locationArea: rawLocationArea,
+    societyName: rawSocietyName,
     societyId: raw.society_id !== undefined && raw.society_id !== null ? String(raw.society_id) : (raw.societyId ? String(raw.societyId) : undefined),
-    gstin: raw.gst_number || raw.gstin || `07AAAAA${vId}0001Z5`,
+    gstin: rawGstin,
+    panNumber: rawPan,
+    fssaiNumber: rawFssai,
+    submissionTimestamp: createdAtReadable || submissionTimestamp,
+    createdAtReadable,
+    createdAtIst,
+    createdAtTime,
+    holdEmailSubject:
+      raw.hold_email_subject ||
+      raw.holdEmailSubject ||
+      raw.email_subject ||
+      raw.emailSubject ||
+      raw.subject ||
+      raw.hold_subject ||
+      undefined,
+    holdReason:
+      raw.hold_reason ||
+      raw.holdReason ||
+      raw.email_content ||
+      raw.emailContent ||
+      raw.reason ||
+      raw.remarks ||
+      raw.comments ||
+      raw.message ||
+      raw.hold_message ||
+      undefined,
+    holdTimestamp: raw.hold_timestamp || raw.holdTimestamp || raw.hold_date || undefined,
+    hasResubmitted: (raw.is_update_viewed || raw.isUpdateViewed)
+      ? false
+      : Boolean(
+          raw.has_resubmitted ??
+          raw.hasResubmitted ??
+          raw.has_vendor_update ??
+          raw.hasVendorUpdate ??
+          raw.is_reapplied ??
+          raw.isReapplied ??
+          raw.has_reapplied ??
+          raw.hasReapplied ??
+          raw.is_updated ??
+          raw.isUpdated ??
+          (Array.isArray(resubmittedChanges) && resubmittedChanges.length > 0) ||
+          (Array.isArray(rawUpdatedFields) && rawUpdatedFields.length > 0) ||
+          (raw.changes_list && Array.isArray(raw.changes_list) && raw.changes_list.length > 0) ||
+          (raw.changed_fields && typeof raw.changed_fields === 'object' && Object.keys(raw.changed_fields).length > 0) ||
+          (raw.total_changed_fields && Number(raw.total_changed_fields) > 0)
+        ),
+    hasVendorUpdate: (raw.is_update_viewed || raw.isUpdateViewed)
+      ? false
+      : Boolean(
+          raw.has_vendor_update ??
+          raw.hasVendorUpdate ??
+          raw.has_resubmitted ??
+          raw.hasResubmitted ??
+          (Array.isArray(resubmittedChanges) && resubmittedChanges.length > 0) ||
+          (Array.isArray(rawUpdatedFields) && rawUpdatedFields.length > 0) ||
+          (raw.changes_list && Array.isArray(raw.changes_list) && raw.changes_list.length > 0) ||
+          (raw.changed_fields && typeof raw.changed_fields === 'object' && Object.keys(raw.changed_fields).length > 0) ||
+          (raw.total_changed_fields && Number(raw.total_changed_fields) > 0)
+        ),
+    isUpdateViewed: Boolean(raw.is_update_viewed ?? raw.isUpdateViewed ?? false),
+    resubmittedAt: raw.resubmitted_at || raw.resubmittedAt || raw.vendorUpdateTimestamp || null,
+    resubmittedAtReadable,
+    resubmittedChanges,
+    updatedFieldKeys,
+    rejectionReason: raw.rejection_reason || raw.rejectionReason || undefined,
+    rejectionTimestamp: raw.rejection_timestamp || raw.rejectionTimestamp || undefined,
+    documents: raw.documents || [],
     subscriptionTier: (raw.subscription_tier || raw.subscriptionTier || 'pro') as any,
-    subscriptionRenewalDate: raw.renewal_date || raw.subscriptionRenewalDate || (normalizedStatus === 'expired' ? '2026-05-15' : '2026-12-31'),
+    subscriptionRenewalDate: raw.renewal_date || raw.subscriptionRenewalDate || new Date(Date.now() + 30 * 86400000).toISOString(),
     status: normalizedStatus,
     totalEarnings: earnings,
     totalOrdersCount: ordersCount,
-    avatarUrl:
-      raw.logo ||
-      raw.avatarUrl ||
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300',
-    payments: raw.payments || [],
-    createdAt: raw.vendor_created_at || raw.created_at || raw.createdAt || new Date().toISOString(),
+    avatarUrl,
+    createdAt: createdAtIso,
     updatedAt: raw.updated_at || raw.updatedAt || new Date().toISOString(),
   };
+
+  return domainVendor;
 };

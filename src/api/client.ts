@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import { env } from '../env';
 
 export const apiClient: AxiosInstance = axios.create({
@@ -10,4 +10,12 @@ export const apiClient: AxiosInstance = axios.create({
     'X-Platform-Client': 'admin_dashboard',
   },
   withCredentials: true,
+});
+
+
+apiClient.interceptors.request.use((config) => {
+  if (config.url && config.baseURL && config.baseURL.endsWith('/api') && config.url.startsWith('/api/')) {
+    config.url = config.url.substring(4);
+  }
+  return config;
 });

@@ -16,14 +16,14 @@ export interface PowerSectionMetadata {
 export const POWER_SECTIONS_LIST: PowerSectionMetadata[] = [
   {
     id: 'SOCIETIES',
-    label: 'Societies Management',
+    label: 'Societies & Area Management',
     description: 'Register, edit, delete residential societies and view society active vendors.',
     iconName: 'Building2',
   },
   {
     id: 'VENDORS',
-    label: 'Vendors',
-    description: 'Review vendor onboarding requests, approve or reject applications.',
+    label: 'User & Vendor',
+    description: 'Review vendor onboarding requests, approve or reject applications, and manage platform users.',
     iconName: 'Users',
   },
   {
@@ -59,8 +59,19 @@ export interface SubAdminUser {
   password?: string;
   role: 'super_admin' | 'sub_admin';
   powers: PowerSection[];
+  grantablePowers?: PowerSection[];
+  allowedDelegationPowers?: PowerSection[];
+  canManageSubadmins?: boolean;
   status: 'active' | 'suspended';
   createdAt: string;
+  createdBy?: string;
+  creatorId?: string;
+  createdRole?: 'super_admin' | 'sub_admin';
+  createdByInfo?: {
+    creator_id?: string;
+    created_by?: string;
+    created_role?: string;
+  };
 }
 
 export interface CreateSubAdminRequest {
@@ -68,9 +79,24 @@ export interface CreateSubAdminRequest {
   email: string;
   password?: string;
   powers: PowerSection[];
+  grantable_powers?: PowerSection[];
+  grantablePowers?: PowerSection[];
+  allowed_delegation_powers?: PowerSection[];
+  allowedDelegationPowers?: PowerSection[];
+  can_manage_subadmins?: boolean;
+  canManageSubadmins?: boolean;
+  createdBy?: string;
+  creatorId?: string;
+  createdRole?: 'super_admin' | 'sub_admin';
 }
 
 export interface UpdateSubAdminPowersRequest {
   powers: PowerSection[];
+  grantable_powers?: PowerSection[];
+  grantablePowers?: PowerSection[];
+  allowed_delegation_powers?: PowerSection[];
+  allowedDelegationPowers?: PowerSection[];
+  can_manage_subadmins?: boolean;
+  canManageSubadmins?: boolean;
   status?: 'active' | 'suspended';
 }

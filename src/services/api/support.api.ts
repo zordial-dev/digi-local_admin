@@ -12,203 +12,9 @@ import { mapRawTicketToDomain, mapRawMessageToDomain } from '../mappers/support.
 const LOCAL_TICKETS_KEY = 'digilocal_support_tickets_store';
 const LOCAL_MESSAGES_KEY = 'digilocal_support_messages_store';
 
-const INITIAL_MOCK_TICKETS: SupportTicket[] = [
-  {
-    id: 't-101',
-    ticketNumber: 'TICK-9081',
-    subject: 'Razorpay Payment Settlement Delay for July Billing Cycle',
-    description: 'We processed 42 orders via Razorpay UPI yesterday but the settlement amount is still pending verification on our vendor dashboard.',
-    category: 'billing',
-    priority: 'high',
-    status: 'open',
-    userType: 'vendor',
-    source: 'vendor_portal',
-    reporterName: 'Rajesh Sharma',
-    reporterEmail: 'rajesh.freshbites@gmail.com',
-    entityName: 'FreshBites Daily Grocery',
-    orderId: 'ORD-9841',
-    orderAmount: 1850.0,
-    assignedTo: 'Vikram Mehta',
-    slaMinutesRemaining: 45,
-    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-  },
-  {
-    id: 't-102',
-    ticketNumber: 'TICK-9082',
-    subject: 'Resident Mobile App Delivery Tracking Location Not Updating',
-    description: 'Resident reported that real-time delivery rider location stops refreshing after order dispatched.',
-    category: 'technical',
-    priority: 'urgent',
-    status: 'in_progress',
-    userType: 'user',
-    source: 'landing_website',
-    reporterName: 'Commander V.K. Nair',
-    reporterEmail: 'vknair.resident@gmail.com',
-    entityName: 'Resident Customer',
-    targetVendor: 'FreshMart Grocery & Organic',
-    orderId: 'ORD-9842',
-    orderAmount: 640.0,
-    assignedTo: 'Super Admin',
-    slaMinutesRemaining: 15,
-    createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-  },
-  {
-    id: 't-105',
-    ticketNumber: 'TICK-9085',
-    subject: 'Landing Website Inquiry: Partner Store Onboarding & API Integration',
-    description: 'Submitted via DigiLocal Public Landing Page. Prospective vendor requesting detailed catalog API integration docs and onboarding pricing tier.',
-    category: 'onboarding',
-    priority: 'high',
-    status: 'open',
-    userType: 'vendor',
-    source: 'landing_website',
-    reporterName: 'Aarav Gupta',
-    reporterEmail: 'aarav.retail@gmail.com',
-    entityName: 'Apex Electronics & Appliances',
-    orderId: 'ORD-9845',
-    orderAmount: 3200.0,
-    assignedTo: 'Super Admin',
-    slaMinutesRemaining: 90,
-    createdAt: new Date(Date.now() - 3600000 * 0.5).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 0.5).toISOString(),
-  },
-  {
-    id: 't-103',
-    ticketNumber: 'TICK-9083',
-    subject: 'Request to Update GSTIN & Store Category for Organic Fruits',
-    description: 'We have updated our GST certificate to 07ABCDE1234F1Z5. Please review the documentation attached and update our vendor profile tier.',
-    category: 'onboarding',
-    priority: 'medium',
-    status: 'open',
-    userType: 'user_vendor',
-    source: 'vendor_portal',
-    reporterName: 'Anita Roy',
-    reporterEmail: 'anita.organic@gmail.com',
-    entityName: 'Nature Fresh Organic Store',
-    assignedTo: 'Ananya Sharma',
-    slaMinutesRemaining: 180,
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-  {
-    id: 't-104',
-    ticketNumber: 'TICK-9084',
-    subject: 'Inquiry Regarding Vendor Annual Subscription Plan Renewal Discount',
-    description: 'Our vendor annual pro plan expires next month. We would like to inquire about multi-store annual renewal pricing.',
-    category: 'billing',
-    priority: 'low',
-    status: 'resolved',
-    userType: 'vendor',
-    source: 'landing_website',
-    reporterName: 'Sunil Malhotra',
-    reporterEmail: 'sunil.vendor@royalpalms.com',
-    entityName: 'Royal Palms Grocery Store',
-    assignedTo: 'Super Admin',
-    slaMinutesRemaining: 0,
-    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 't-106',
-    ticketNumber: 'TICK-9086',
-    subject: 'Organic Milk Delivery Delay & Packaging Issue',
-    description: 'Resident customer reported delay in morning fresh organic milk shipment.',
-    category: 'technical',
-    priority: 'high',
-    status: 'in_progress',
-    userType: 'user_vendor',
-    source: 'landing_website',
-    reporterName: 'Priya Verma',
-    reporterEmail: 'priya.organic@gmail.com',
-    entityName: 'Priya Organic Mart',
-    orderId: 'ORD-9842',
-    orderAmount: 1250.0,
-    assignedTo: 'Vikram Mehta',
-    slaMinutesRemaining: 30,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 't-107',
-    ticketNumber: 'TICK-9087',
-    subject: 'Store Catalog Item Price Refund Request',
-    description: 'Customer requested price adjustment for damaged snack boxes during transport.',
-    category: 'billing',
-    priority: 'medium',
-    status: 'resolved',
-    userType: 'user_vendor',
-    source: 'vendor_portal',
-    reporterName: 'Priya Verma',
-    reporterEmail: 'priya.organic@gmail.com',
-    entityName: 'Priya Organic Mart',
-    orderId: 'ORD-9841',
-    orderAmount: 890.0,
-    assignedTo: 'Super Admin',
-    slaMinutesRemaining: 0,
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-  {
-    id: 't-108',
-    ticketNumber: 'TICK-9088',
-    subject: 'UPI Settlement Status Query for Dual Role Account',
-    description: 'Inquiry regarding dual-role store wallet settlement timing.',
-    category: 'billing',
-    priority: 'low',
-    status: 'closed',
-    userType: 'user_vendor',
-    source: 'vendor_portal',
-    reporterName: 'Priya Verma',
-    reporterEmail: 'priya.organic@gmail.com',
-    entityName: 'Priya Organic Mart',
-    assignedTo: 'Ananya Sharma',
-    slaMinutesRemaining: 0,
-    createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-  },
-];
+const INITIAL_MOCK_TICKETS: SupportTicket[] = [];
 
-const INITIAL_MOCK_MESSAGES: Record<string, TicketMessage[]> = {
-  't-101': [
-    {
-      id: 'm-101-1',
-      ticketId: 't-101',
-      senderName: 'Rajesh Sharma',
-      senderRole: 'vendor',
-      message: 'We processed 42 orders via Razorpay UPI yesterday but the settlement amount is still pending verification on our vendor dashboard.',
-      createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    },
-    {
-      id: 'm-101-2',
-      ticketId: 't-101',
-      senderName: 'Vikram Mehta',
-      senderRole: 'sub_admin',
-      message: 'Hello Rajesh, we have flagged transaction batch TXN9871 with Razorpay finance team. Expecting settlement clearance by 4 PM today.',
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-  ],
-  't-102': [
-    {
-      id: 'm-102-1',
-      ticketId: 't-102',
-      senderName: 'Commander V.K. Nair',
-      senderRole: 'user',
-      message: 'Resident reported that real-time delivery rider location stops refreshing after order dispatched.',
-      createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-    },
-    {
-      id: 'm-102-2',
-      ticketId: 't-102',
-      senderName: 'Super Admin',
-      senderRole: 'admin',
-      message: 'Investigating API gate controller endpoint. Pushed token re-sync patch.',
-      isInternalNote: true,
-      createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-    },
-  ],
-};
+const INITIAL_MOCK_MESSAGES: Record<string, TicketMessage[]> = {};
 
 const getLocalTickets = (): SupportTicket[] => {
   try {
@@ -221,7 +27,7 @@ const getLocalTickets = (): SupportTicket[] => {
       }));
     }
   } catch {}
-  return INITIAL_MOCK_TICKETS;
+  return [];
 };
 
 const saveLocalTickets = (tickets: SupportTicket[]) => {
@@ -254,72 +60,57 @@ export const supportApi = {
     search?: string;
   }): Promise<SupportTicket[]> => {
     try {
-      const response = await axiosInstance.get('/support/tickets', { params: filters });
-      const rawData = response.data?.data || response.data?.tickets || response.data;
-      if (Array.isArray(rawData) && rawData.length > 0) {
-        const mapped = rawData.map(mapRawTicketToDomain);
-        saveLocalTickets(mapped);
-        return mapped;
+      const endpoints = ['/admin/support/tickets', '/support/tickets', '/tickets'];
+      for (const ep of endpoints) {
+        try {
+          const response = await axiosInstance.get(ep, { params: filters });
+          const rawData = response.data?.data || response.data?.tickets || response.data;
+          if (Array.isArray(rawData)) {
+            return rawData.map(mapRawTicketToDomain);
+          }
+        } catch {}
       }
     } catch {}
 
-    let list = getLocalTickets();
-
-    if (filters?.status && filters.status !== 'all') {
-      list = list.filter((t) => t.status === filters.status);
-    }
-
-    if (filters?.category && filters.category !== 'all') {
-      list = list.filter((t) => t.category === filters.category);
-    }
-
-    if (filters?.search) {
-      const q = filters.search.toLowerCase().trim();
-      list = list.filter(
-        (t) =>
-          t.subject.toLowerCase().includes(q) ||
-          t.ticketNumber.toLowerCase().includes(q) ||
-          t.reporterName.toLowerCase().includes(q) ||
-          (t.entityName && t.entityName.toLowerCase().includes(q))
-      );
-    }
-
-    return list;
+    return [];
   },
 
   /**
    * GET /api/support/tickets/:ticketId
    */
   getTicketById: async (ticketId: string | number): Promise<SupportTicket> => {
-    const tickets = getLocalTickets();
-    const found = tickets.find((t) => t.id === String(ticketId) || t.ticketNumber === String(ticketId));
+    const sId = String(ticketId);
+    try {
+      const endpoints = [`/admin/support/tickets/${sId}`, `/support/tickets/${sId}`, `/tickets/${sId}`];
+      for (const ep of endpoints) {
+        try {
+          const res = await axiosInstance.get(ep);
+          const raw = res.data?.data || res.data?.ticket || res.data;
+          if (raw && (raw.id || raw.ticket_id)) return mapRawTicketToDomain(raw);
+        } catch {}
+      }
+    } catch {}
+
+    const localTickets = getLocalTickets();
+    const found = localTickets.find((t) => String(t.id) === sId || String(t.ticketNumber) === sId);
     if (found) return found;
 
-    const mockFound = INITIAL_MOCK_TICKETS.find((t) => t.id === String(ticketId) || t.ticketNumber === String(ticketId));
-    if (mockFound) return mockFound;
-
-    try {
-      const res = await axiosInstance.get(`/support/tickets/${ticketId}`);
-      if (res.data) return mapRawTicketToDomain(res.data);
-    } catch (e) {
-      console.warn('Backend ticket fetch failed, using fallback mock ticket:', e);
-    }
-
     return {
-      id: String(ticketId),
-      ticketNumber: String(ticketId).startsWith('TICK-') ? String(ticketId) : `TICK-${ticketId}`,
-      subject: 'Landing Website Inquiry: Partner Store Onboarding & API Integration',
-      description: 'Submitted via landing website contact intake. Inquiring regarding partner store onboarding documentation, payment gateway setup, and API credentials.',
-      category: 'onboarding',
-      priority: 'high',
+      id: sId,
+      ticketNumber: sId,
+      subject: 'Support Ticket',
+      description: 'Ticket inquiry retrieved from active queue.',
+      category: 'general',
+      priority: 'medium',
       status: 'open',
-      userType: 'vendor',
+      userType: 'user',
       source: 'landing_website',
-      reporterName: 'Aarav Gupta',
-      reporterEmail: 'aarav.retail@gmail.com',
-      entityName: 'Apex Electronics & Appliances',
-      assignedTo: 'Vikram Mehta',
-      slaMinutesRemaining: 180,
+      reporterName: 'Resident User',
+      reporterEmail: 'user@digilocal.in',
+      reporterPhone: '',
+      entityName: 'DigiLocal Network',
+      assignedTo: 'Super Admin',
+      slaMinutesRemaining: 120,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -329,35 +120,15 @@ export const supportApi = {
    * GET /api/support/tickets/:ticketId/messages
    */
   getTicketMessages: async (ticketId: string | number): Promise<TicketMessage[]> => {
-    const allMsgs = getLocalMessages();
-    const ticketMsgs = allMsgs[String(ticketId)] || [];
-    if (ticketMsgs.length > 0) return ticketMsgs;
-
     try {
       const res = await axiosInstance.get(`/support/tickets/${ticketId}/messages`);
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        return res.data.map(mapRawMessageToDomain);
+      const raw = res.data?.data || res.data?.messages || res.data;
+      if (Array.isArray(raw)) {
+        return raw.map(mapRawMessageToDomain);
       }
     } catch {}
 
-    return [
-      {
-        id: 'm-1',
-        ticketId: String(ticketId),
-        senderName: 'Aarav Gupta',
-        senderRole: 'user',
-        message: 'Hello Support Team, we are looking to integrate our retail store with the DigiLocal platform.',
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      },
-      {
-        id: 'm-2',
-        ticketId: String(ticketId),
-        senderName: 'Vikram Mehta',
-        senderRole: 'admin',
-        message: 'Welcome! I have assigned your ticket to our onboarding team. Please share your GSTIN and store license.',
-        createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-      },
-    ];
+    return [];
   },
 
   /**
@@ -534,6 +305,14 @@ export const supportApi = {
     assignedTo?: string
   ): Promise<SupportTicket> => {
     const sId = String(ticketId);
+    try {
+      const res = await axiosInstance.patch(`/admin/support/tickets/${sId}/status`, { status, priority, assignedTo });
+      if (res.data?.data) {
+        const domain = mapRawTicketToDomain(res.data.data);
+        saveLocalTickets([domain, ...getLocalTickets().filter(t => t.id !== domain.id)]);
+        return domain;
+      }
+    } catch {}
     const tickets = getLocalTickets();
 
     const updated = tickets.map((t) => {
@@ -568,23 +347,61 @@ export const supportApi = {
   },
 
   /**
-   * POST /api/support/tickets
+   * POST ticket creation
    */
   createTicket: async (payload: CreateTicketRequest): Promise<SupportTicket> => {
+    // Attempt real backend POST endpoints
+    const endpoints = [
+      '/admin/support/tickets',
+      '/support/tickets',
+      payload.userType === 'user' ? '/user/tickets' : '/vendor/tickets',
+    ];
+
+    for (const ep of endpoints) {
+      try {
+        const response = await axiosInstance.post(ep, {
+          subject: payload.subject,
+          description: payload.description,
+          category: payload.category,
+          priority: payload.priority || 'medium',
+          reporter_name: payload.reporterName,
+          reporter_email: payload.reporterEmail,
+          reporter_phone: payload.reporterPhone,
+          entity_name: payload.entityName,
+          target_vendor: payload.targetVendor,
+          target_resident: (payload as any).targetResident,
+          user_type: payload.userType || 'user',
+          source: payload.source || 'landing_website',
+        });
+
+        if (response.data?.data || response.data?.ticket) {
+          const raw = response.data?.data || response.data?.ticket;
+          const domain = mapRawTicketToDomain(raw);
+          saveLocalTickets([domain, ...getLocalTickets().filter((t) => t.id !== domain.id)]);
+          return domain;
+        }
+      } catch {}
+    }
+
+    // Fallback to local state if offline or endpoint unmapped
+    const ticketIdStr = `t-${Date.now()}`;
     const newTicket: SupportTicket = {
-      id: `t-${Date.now()}`,
-      ticketNumber: `TICK-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: ticketIdStr,
+      ticketNumber: ticketIdStr,
       subject: payload.subject,
       description: payload.description,
       category: payload.category,
-      priority: payload.priority,
+      priority: payload.priority || 'medium',
       status: 'open',
-      userType: payload.userType || 'vendor',
+      userType: payload.userType || 'user',
       source: payload.source || 'landing_website',
       reporterName: payload.reporterName,
       reporterEmail: payload.reporterEmail,
+      reporterPhone: payload.reporterPhone,
       entityName: payload.entityName || 'DigiLocal Network',
       targetVendor: payload.targetVendor || undefined,
+      targetResident: (payload as any).targetResident || undefined,
+      reportedPartyName: (payload as any).targetResident || payload.targetVendor || undefined,
       assignedTo: 'Super Admin',
       slaMinutesRemaining: 120,
       createdAt: new Date().toISOString(),
@@ -609,5 +426,109 @@ export const supportApi = {
     saveLocalMessages(allMsgs);
 
     return newTicket;
+  },
+
+  /**
+   * GET /api/admin/support/analytics
+   */
+  getAnalytics: async () => {
+    try {
+      const endpoints = ['/admin/support/analytics', '/support/analytics', '/v1/admin/support/analytics'];
+      for (const ep of endpoints) {
+        try {
+          const response = await axiosInstance.get(ep);
+          const raw = response.data?.data || response.data;
+          if (raw) return raw;
+        } catch {}
+      }
+    } catch {}
+    return null;
+  },
+
+  /**
+   * GET /api/admin/support/sla
+   */
+  getSLAPolicy: async () => {
+    try {
+      const endpoints = ['/admin/support/sla', '/support/sla', '/v1/admin/support/sla'];
+      for (const ep of endpoints) {
+        try {
+          const response = await axiosInstance.get(ep);
+          if (response.data?.data || response.data) return response.data?.data || response.data;
+        } catch {}
+      }
+    } catch {}
+    return {
+      urgent_sla_minutes: 15,
+      high_sla_minutes: 45,
+      medium_sla_minutes: 120,
+      low_sla_minutes: 240,
+      auto_escalate_on_breach: true,
+      notify_assigned_staff: true,
+    };
+  },
+
+  /**
+   * PUT /api/admin/support/sla
+   */
+  updateSLAPolicy: async (payload: {
+    urgent_sla_minutes?: number;
+    high_sla_minutes?: number;
+    medium_sla_minutes?: number;
+    low_sla_minutes?: number;
+    auto_escalate_on_breach?: boolean;
+    notify_assigned_staff?: boolean;
+  }) => {
+    try {
+      const endpoints = ['/admin/support/sla', '/support/sla', '/v1/admin/support/sla'];
+      for (const ep of endpoints) {
+        try {
+          const response = await axiosInstance.put(ep, payload);
+          if (response.data?.data || response.data) return response.data?.data || response.data;
+        } catch {}
+      }
+    } catch {}
+    return payload;
+  },
+
+  /**
+   * GET /api/admin/support/tags
+   */
+  getTags: async () => {
+    try {
+      const endpoints = ['/admin/support/tags', '/support/tags', '/v1/admin/support/tags'];
+      for (const ep of endpoints) {
+        try {
+          const response = await axiosInstance.get(ep);
+          const raw = response.data?.data || response.data;
+          if (Array.isArray(raw)) return raw;
+        } catch {}
+      }
+    } catch {}
+    return [];
+  },
+
+  /**
+   * POST /api/admin/support/tags
+   */
+  createTag: async (tag: { name: string; color: string }) => {
+    try {
+      const response = await axiosInstance.post('/admin/support/tags', tag);
+      return response.data?.data || response.data;
+    } catch {
+      return { id: `tag-${Date.now()}`, ...tag };
+    }
+  },
+
+  /**
+   * DELETE /api/admin/support/tags/:tagId
+   */
+  deleteTag: async (tagId: string) => {
+    try {
+      const response = await axiosInstance.delete(`/admin/support/tags/${tagId}`);
+      return response.data;
+    } catch {
+      return { message: `Tag ${tagId} deleted successfully.` };
+    }
   },
 };

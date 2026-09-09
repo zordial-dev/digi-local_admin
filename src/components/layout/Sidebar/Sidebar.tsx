@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Building2,
+  MapPin,
   Users,
   UserCheck,
   CreditCard,
@@ -11,6 +12,7 @@ import {
   LifeBuoy,
   Menu,
   ChevronLeft,
+  Activity,
 } from 'lucide-react';
 import './Sidebar.css';
 import { MAIN_MENU_CONFIG } from '../../../config/menu.config';
@@ -28,12 +30,14 @@ export interface SidebarProps {
 const ICON_MAP: Record<string, React.ReactNode> = {
   LayoutDashboard: <LayoutDashboard size={20} />,
   Building2: <Building2 size={20} />,
+  MapPin: <MapPin size={20} />,
   Users: <Users size={20} />,
   UserCheck: <UserCheck size={20} />,
   CreditCard: <CreditCard size={20} />,
   LifeBuoy: <LifeBuoy size={20} />,
   ShieldAlert: <ShieldAlert size={20} />,
   Settings: <Settings size={20} />,
+  Activity: <Activity size={20} />,
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -76,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="brand-text">
               <span className="brand-name">DigiLocal</span>
-              <span className="brand-badge">SUPER ADMIN</span>
+              <span className="brand-badge">{isSuperAdmin ? 'SUPER ADMIN' : 'SUB ADMIN'}</span>
             </div>
           </div>
 

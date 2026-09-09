@@ -20,7 +20,8 @@ export const useTickets = (filters?: TicketFilterParams) => {
   return useQuery({
     queryKey: CACHE_KEYS.support.list(filters),
     queryFn: () => supportApi.getTickets(filters),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -42,6 +43,8 @@ export const useTicketMessages = (ticketId?: string | number) => {
   });
 };
 
+import { logBackendMutation } from '../services/audit.service';
+
 export const useSendTicketReply = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
@@ -57,6 +60,7 @@ export const useSendTicketReply = () => {
 
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      logBackendMutation('SUPPORT', 'REPLY', `Dispatched reply on support ticket #${variables.ticketId}`, variables.payload.text, String(variables.ticketId));
       addToast({
         type: 'success',
         title: 'Response Dispatched',
@@ -79,6 +83,7 @@ export const useSendTicketReply = () => {
 
 export const useUpdateTicketStatus = () => {
   const queryClient = useQueryClient();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: ({
@@ -93,8 +98,22 @@ export const useUpdateTicketStatus = () => {
       assignedTo?: string;
     }) => supportApi.updateTicketStatus(ticketId, status, priority, assignedTo),
 
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      logBackendMutation('SUPPORT', 'STATUS_CHANGE', `Updated parameters for support ticket #${variables.ticketId}`, `Status: ${variables.status || 'unchanged'}, Priority: ${variables.priority || 'unchanged'}`, String(variables.ticketId));
+      addToast({
+        type: 'success',
+        title: 'Ticket Parameters Updated',
+        description: `Support Ticket parameters updated (Status: ${variables.status || 'unchanged'}).`,
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Ticket Update Failed',
+        description: appErr.message,
+      });
     },
   });
 };
@@ -108,6 +127,7 @@ export const useCreateSupportTicket = () => {
 
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.support.all });
+      logBackendMutation('SUPPORT', 'CREATE', `Created support ticket #${data.ticketNumber}: "${data.subject}"`, `Category: ${data.category}, Priority: ${data.priority}`, String(data.id));
       addToast({
         type: 'success',
         title: 'Ticket Created',
@@ -255,5 +275,47 @@ export const useManageFollowers = () => {
         description: appErr.message,
       });
     },
+  });
+};
+
+export const useSupportAnalytics = () => {
+  return useQuery({
+    queryKey: ['support', 'analytics'],
+    queryFn: () => supportApi.getAnalytics(),
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useSupportSLA = () => {
+  return useQuery({
+    queryKey: ['support', 'sla'],
+    queryFn: () => supportApi.getSLAPolicy(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useUpdateSupportSLA = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof supportApi.updateSLAPolicy>[0]) =>
+      supportApi.updateSLAPolicy(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support', 'sla'] });
+      addToast({
+        type: 'success',
+        title: 'SLA Policy Updated',
+        description: 'Target response and resolution SLAs configured successfully.',
+      });
+    },
+  });
+};
+
+export const useSupportTags = () => {
+  return useQuery({
+    queryKey: ['support', 'tags'],
+    queryFn: () => supportApi.getTags(),
+    staleTime: 5 * 60 * 1000,
   });
 };
