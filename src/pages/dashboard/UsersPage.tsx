@@ -105,7 +105,7 @@ export const UsersPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6">
       {/* Top Header & Breadcrumb Navigation */}
       <div className="flex flex-col gap-2">
         <Breadcrumb />
