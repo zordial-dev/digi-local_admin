@@ -717,4 +717,24 @@ export const vendorsApi = {
       };
     }
   },
+
+  /**
+   * DELETE /api/admin/vendors/:vendorId
+   */
+  deleteVendor: async (vendorId: string | number): Promise<void> => {
+    const sId = String(vendorId);
+    try {
+      try {
+        await axiosInstance.delete(`/admin/vendors/${sId}`);
+      } catch {
+        await axiosInstance.delete(`/vendors/${sId}`);
+      }
+    } finally {
+      // Clean up local cache regardless of backend response
+      const all = getLocalVendors();
+      saveLocalVendors(all.filter((v) => v.id !== sId));
+      const pending = getLocalPendingVendors();
+      saveLocalPendingVendors(pending.filter((v) => v.id !== sId));
+    }
+  },
 };

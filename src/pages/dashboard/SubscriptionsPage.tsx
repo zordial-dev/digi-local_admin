@@ -12,6 +12,8 @@ import {
   useSubscriptionStats,
   useRenewSubscription,
   useDownloadInvoice,
+  useCancelSubscription,
+  useUnblockSubscription,
 } from '../../hooks/useSubscriptions';
 import { useDebounce } from '../../hooks/useDebounce';
 import type { Subscription } from '../../types/subscription.types';
@@ -39,6 +41,7 @@ import {
 } from 'recharts';
 import { SubscriptionRenewalModal } from '../../components/subscriptions/SubscriptionRenewalModal';
 import { SubscriptionInvoiceModal } from '../../components/subscriptions/SubscriptionInvoiceModal';
+import { SubscriptionDetailsDrawer } from '../../components/subscriptions/SubscriptionDetailsDrawer';
 
 const TIER_COLORS = {
   free: '#78716C',
@@ -61,10 +64,13 @@ export const SubscriptionsPage: React.FC = () => {
 
   const renewMutation = useRenewSubscription();
   const downloadInvoiceMutation = useDownloadInvoice();
+  const cancelMutation = useCancelSubscription();
+  const unblockMutation = useUnblockSubscription();
 
   // Modals state
   const [renewingSubscription, setRenewingSubscription] = useState<Subscription | null>(null);
   const [invoicingSubscription, setInvoicingSubscription] = useState<Subscription | null>(null);
+  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const subscriptions = Array.isArray(rawSubscriptions) ? rawSubscriptions : [];
 
@@ -315,6 +321,29 @@ export const SubscriptionsPage: React.FC = () => {
         data={displayedSubscriptions}
         isLoading={isLoading}
         emptyMessage="No subscription records match your search parameters."
+        onRowClick={(sub) => setSelectedSubscription(sub)}
+        disableHorizontalScroll={true}
+      />
+
+      {/* Subscription Details Drawer */}
+      <SubscriptionDetailsDrawer
+        isOpen={!!selectedSubscription}
+        onClose={() => setSelectedSubscription(null)}
+        subscription={selectedSubscription}
+        isCancelling={cancelMutation.isPending}
+        onCancelClick={(sub, reason) => {
+          cancelMutation.mutate(
+            { id: sub.id, reason },
+            { onSuccess: () => setSelectedSubscription(null) }
+          );
+        }}
+        isUnblocking={unblockMutation.isPending}
+        onUnblockClick={(sub) => {
+          unblockMutation.mutate(
+            sub.id,
+            { onSuccess: () => setSelectedSubscription(null) }
+          );
+        }}
       />
 
       {/* Renewal Extension Modal */}

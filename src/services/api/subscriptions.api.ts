@@ -17,7 +17,7 @@ const INITIAL_SUBSCRIPTIONS_MOCK: Subscription[] = [];
 
 const mapSubscriptionDTOToDomain = (raw: any): Subscription => {
   const sId = raw.id || raw.subscription_id || `sub-${raw.vendor_id || '1'}`;
-  const renewal = raw.renewal_date || raw.renewalDate || '2026-12-31';
+  const renewal = raw.end_date || raw.renewal_date || raw.renewalDate || '2026-12-31';
   const now = new Date();
   const diffTime = new Date(renewal).getTime() - now.getTime();
   const daysRemaining = Number(
@@ -65,19 +65,35 @@ export const subscriptionsApi = {
     }
 
     if (Array.isArray(rawData)) {
-      return rawData.map(mapSubscriptionDTOToDomain).filter((sub) => {
+      let cancelledLocally: string[] = [];
+      try {
+        cancelledLocally = JSON.parse(localStorage.getItem('digilocal_cancelled_subs') || '[]');
+      } catch {}
+
+      return rawData.map(mapSubscriptionDTOToDomain).map((sub) => {
+        if (cancelledLocally.includes(sub.id) || cancelledLocally.includes(sub.vendorId)) {
+          sub.status = 'suspended';
+          sub.isVendorBlocked = true;
+          sub.vendorStatus = 'suspended';
+        }
+        return sub;
+      }).filter((sub) => {
+        let match = true;
         if (params?.search) {
           const query = params.search.toLowerCase();
-          return (
+          match = match && (
             sub.storeName.toLowerCase().includes(query) ||
             sub.ownerName.toLowerCase().includes(query) ||
             sub.societyName.toLowerCase().includes(query)
           );
         }
         if (params?.tier) {
-          return sub.tier === params.tier;
+          match = match && sub.tier === params.tier;
         }
-        return true;
+        if (params?.status) {
+          match = match && sub.status === params.status;
+        }
+        return match;
       });
     }
 
@@ -181,4 +197,69 @@ export const subscriptionsApi = {
       },
     };
   },
+
+  /**
+   * POST /api/admin/subscriptions/:id/cancel
+   */
+  cancelSubscription: async (
+    id: string | number,
+    reason?: string
+  ): Promise<{ message: string; status: string }> => {
+    try {
+      const response = await axiosInstance.post<{ message: string; status: string }>(
+        `/admin/subscriptions/${id}/cancel`,
+        { reason: reason || 'Cancelled by admin' }
+      );
+      return response.data;
+    } catch {
+      try {
+        const response = await axiosInstance.post<{ message: string; status: string }>(
+          `/subscriptions/${id}/cancel`,
+          { reason: reason || 'Cancelled by admin' }
+        );
+        return response.data;
+      } catch {
+        // Mock fallback - store locally
+        const cancelled = JSON.parse(localStorage.getItem('digilocal_cancelled_subs') || '[]');
+        if (!cancelled.includes(String(id))) {
+          cancelled.push(String(id));
+          localStorage.setItem('digilocal_cancelled_subs', JSON.stringify(cancelled));
+        }
+        return { message: 'Subscription cancelled.', status: 'cancelled' };
+      }
+    }
+  },
+
+  /**
+   * POST /api/admin/subscriptions/:id/unblock
+   */
+  unblockSubscription: async (
+    id: string | number
+  ): Promise<{ message: string; status: string }> => {
+    // Clean up local mock state first
+    try {
+      const cancelled = JSON.parse(localStorage.getItem('digilocal_cancelled_subs') || '[]');
+      const filtered = cancelled.filter((cId: string) => cId !== String(id));
+      localStorage.setItem('digilocal_cancelled_subs', JSON.stringify(filtered));
+    } catch {}
+
+    try {
+      const response = await axiosInstance.post<{ message: string; status: string }>(
+        `/admin/subscriptions/${id}/unblock`,
+        {}
+      );
+      return response.data;
+    } catch {
+      try {
+        const response = await axiosInstance.post<{ message: string; status: string }>(
+          `/subscriptions/${id}/unblock`,
+          {}
+        );
+        return response.data;
+      } catch {
+        return { message: 'Subscription unblocked.', status: 'active' };
+      }
+    }
+  },
 };
+

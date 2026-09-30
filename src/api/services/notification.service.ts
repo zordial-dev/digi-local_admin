@@ -153,7 +153,7 @@ class NotificationService extends BaseApiService {
       if (!updated) throw new Error('Notification not found');
       return updated;
     }
-    return this.patch<NotificationItem, { isRead: boolean }>(`/${id}/read`, { isRead: true });
+    return this.post<NotificationItem, { isRead: boolean }>(`/${id}/read`, { isRead: true });
   }
 
   public async markAllAsRead(): Promise<void> {

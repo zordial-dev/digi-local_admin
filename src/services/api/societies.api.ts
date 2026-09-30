@@ -36,7 +36,14 @@ export const societiesApi = {
 
       let domainList: Society[] = [];
       if (Array.isArray(rawData)) {
-        domainList = rawData.map(mapSocietyDTOToDomain);
+        const mapped = rawData.map(mapSocietyDTOToDomain);
+        const unique = new Map<string, Society>();
+        mapped.forEach(s => {
+          if (!unique.has(s.code)) {
+            unique.set(s.code, s);
+          }
+        });
+        domainList = Array.from(unique.values());
       }
 
       try {

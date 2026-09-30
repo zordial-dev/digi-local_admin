@@ -143,7 +143,7 @@ export const PeoplePage: React.FC = () => {
       </div>
 
       {/* Enterprise Data Table */}
-      <div className="bg-white border border-[#E7DFD5] rounded-2xl shadow-sm overflow-hidden p-1">
+      <div className="mt-4">
         <PeopleEnterpriseDataTable
           data={peopleList}
           isLoading={isLoading}

@@ -8,17 +8,17 @@ import {
 } from '../../hooks/useSociety';
 import { Society, SocietyStatus } from '../../types/society';
 import { ColumnDef, TableAction } from '../../types/table';
-import { DataTable } from '../../components/data-table/DataTable';
-import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { Modal } from '../../components/ui/Modal';
+import { DataTable } from '../../components/common/DataTable/DataTable';
+import { Badge } from '../../components/common/Badge/Badge';
+import { Button } from '../../components/common/Button/Button';
+import { Modal } from '../../components/common/Modal/Modal';
 import { ErrorState } from '../../components/feedback/ErrorState';
 import { SocietyFilterBar } from '../../components/society/SocietyFilterBar';
 import { SocietyFormModal } from '../../components/society/SocietyFormModal';
 import { SocietyDetailsDrawer } from '../../components/society/SocietyDetailsDrawer';
 import { BulkActionsToolbar } from '../../components/society/BulkActionsToolbar';
 import { useDebounce } from '../../hooks/useDebounce';
-import { formatDate } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters.utils';
 
 export const SocietyListPage: React.FC = () => {
   // Query Filter States

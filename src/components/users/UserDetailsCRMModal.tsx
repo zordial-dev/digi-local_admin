@@ -403,19 +403,19 @@ export const UserDetailsCRMModal: React.FC<UserDetailsCRMModalProps> = ({
 
                   {/* Profile Details Cards Grid */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
-                      <Home size={16} className="text-[#C8A878]" />
-                      <div>
-                        <span className="text-[#78716C] block text-[10px] uppercase font-bold">Residence Unit</span>
-                        <span className="font-bold text-[#211A19]">{user.flatNumber || 'B-304'}, {user.societyName}</span>
+                    <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
+                      <Home size={16} className="text-[#C8A878] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Residence Unit</span>
+                        <span className="font-bold text-[#211A19] block">{user.flatNumber || 'N/A'}, {user.societyName}</span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
-                      <Clock size={16} className="text-[#C8A878]" />
-                      <div>
-                        <span className="text-[#78716C] block text-[10px] uppercase font-bold">Member Since</span>
-                        <span className="font-bold text-[#211A19]">{formatDate(user.createdAt)}</span>
+                    <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
+                      <Clock size={16} className="text-[#C8A878] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Member Since</span>
+                        <span className="font-bold text-[#211A19] block">{formatDate(user.createdAt)}</span>
                       </div>
                     </div>
                   </div>

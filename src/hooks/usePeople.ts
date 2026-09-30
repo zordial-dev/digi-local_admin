@@ -43,11 +43,11 @@ export const useCreatePerson = () => {
     mutationFn: (data: CreatePersonRequest) => peopleApi.createPerson(data),
     onSuccess: (newPerson, variables) => {
       queryClient.invalidateQueries({ queryKey: ['people'] });
-      logBackendMutation('USERS', 'CREATE', `Created user account "${variables.fullName}" (${variables.email})`, `Assigned role: ${variables.role || 'USER'}`, String(newPerson?.id || ''));
+      logBackendMutation('USERS', 'CREATE', `Created user account "${variables.name}" (${variables.email})`, `Assigned role: USER`, String(newPerson?.id || ''));
       addToast({
         type: 'success',
         title: 'User Account Created',
-        description: `Created account for ${variables.fullName}.`,
+        description: `Created account for ${variables.name}.`,
       });
     },
   });
