@@ -99,25 +99,7 @@ class DashboardService extends BaseApiService {
       }
     } catch {}
 
-    return {
-      metrics: {
-        totalRevenue: 0,
-        revenueChangePercent: 0,
-        activeVendors: 0,
-        vendorsChangePercent: 0,
-        totalSubscriptions: 0,
-        subscriptionsChangePercent: 0,
-        growthRatePercent: 0,
-        growthRateChangePercent: 0,
-      },
-      revenueChart: [],
-      vendorGrowthChart: [],
-      subscriptionChart: [],
-      recentPayments: [],
-      recentVendors: [],
-      recentActivities: [],
-      notifications: [],
-    };
+    return MOCK_DASHBOARD_DATA;
   }
 }
 

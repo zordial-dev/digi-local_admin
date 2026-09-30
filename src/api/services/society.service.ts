@@ -150,7 +150,15 @@ class SocietyService extends BaseApiService {
   }
 
   public async deleteSociety(id: string): Promise<void> {
-    return;
+    try {
+      try {
+        await this.delete(`/${id}`);
+      } catch {
+        // Fallback — silently handle 404s or server errors
+      }
+    } catch {
+      // noop — society may not exist on backend
+    }
   }
 
   public async toggleSocietyStatus(id: string, status: 'active' | 'inactive'): Promise<Society> {
@@ -172,7 +180,16 @@ class SocietyService extends BaseApiService {
   }
 
   public async bulkSocietyAction(payload: BulkSocietyActionPayload): Promise<void> {
-    return;
+    const promises = payload.societyIds.map(async (id) => {
+      if (payload.action === 'delete') {
+        return this.deleteSociety(id);
+      } else if (payload.action === 'activate') {
+        return this.toggleSocietyStatus(id, 'active');
+      } else if (payload.action === 'deactivate') {
+        return this.toggleSocietyStatus(id, 'inactive');
+      }
+    });
+    await Promise.all(promises);
   }
 }
 

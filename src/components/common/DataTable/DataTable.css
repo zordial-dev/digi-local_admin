@@ -14,6 +14,7 @@
 
 .datatable {
   width: 100%;
+  min-width: max-content;
   border-collapse: collapse;
   text-align: left;
   font-family: var(--font-sans);
@@ -55,6 +56,17 @@
 
 .clickable-row {
   cursor: pointer;
+}
+
+/* Opt-in modifier to prevent horizontal scrolling */
+.datatable-container.no-horizontal-scroll .datatable-scroll-area {
+  overflow-x: hidden;
+}
+.datatable-container.no-horizontal-scroll .datatable {
+  min-width: auto;
+}
+.datatable-container.no-horizontal-scroll .datatable th {
+  white-space: normal;
 }
 
 /* Specific Column Alignment Rules */

@@ -73,3 +73,55 @@ export const useDownloadInvoice = () => {
     },
   });
 };
+
+export const useCancelSubscription = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string | number; reason?: string }) =>
+      subscriptionsApi.cancelSubscription(id, reason),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.subscriptions.all });
+      addToast({
+        type: 'success',
+        title: 'Subscription Cancelled',
+        description: data.message || 'Subscription blocked/cancelled successfully.',
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Cancellation Error',
+        description: appErr.message,
+      });
+    },
+  });
+};
+
+export const useUnblockSubscription = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string | number) => subscriptionsApi.unblockSubscription(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.subscriptions.all });
+      addToast({
+        type: 'success',
+        title: 'Subscription Unblocked',
+        description: data.message || 'Subscription has been unblocked and is active again.',
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Unblock Error',
+        description: appErr.message,
+      });
+    },
+  });
+};
+

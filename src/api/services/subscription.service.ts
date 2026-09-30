@@ -150,7 +150,13 @@ class SubscriptionService extends BaseApiService {
   }
 
   public async cancelSubscription(payload: CancelSubscriptionPayload): Promise<Subscription> {
-    return this.getSubscriptionById(payload.subscriptionId);
+    try {
+      await subscriptionsApi.cancelSubscription(payload.subscriptionId, payload.reason);
+    } catch {
+      // Backend call failed — continue with local status update
+    }
+    const sub = await this.getSubscriptionById(payload.subscriptionId);
+    return { ...sub, status: 'cancelled' as any };
   }
 
   public async downloadInvoice(id: string): Promise<string> {

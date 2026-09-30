@@ -303,7 +303,7 @@ export const VendorsPage: React.FC = () => {
           </Badge>
 
           {/* On-Hold Queue Specific Badge Rules */}
-          {(vendor.status === 'on_hold' || vendor.status === 'hold') && (
+          {vendor.status === 'on_hold' && (
             (vendor.hasResubmitted || vendor.hasVendorUpdate || (vendor.resubmittedChanges && vendor.resubmittedChanges.length > 0) || (vendor.updatedFieldKeys && vendor.updatedFieldKeys.length > 0)) ? (
               <span
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-600 text-white shadow-xs animate-pulse font-mono cursor-pointer hover:bg-emerald-700 transition-all"
@@ -539,7 +539,7 @@ export const VendorsPage: React.FC = () => {
         onClose={() => setBlockingVendor(null)}
         onConfirm={handleToggleStatus}
         vendor={blockingVendor}
-        isLoading={toggleStatusMutation.isPending}
+        isLoading={blockingVendor?.status === 'suspended' || blockingVendor?.status === 'blocked' ? toggleStatusMutation.isPending : blockVendorMutation.isPending}
       />
 
       {/* Vendor Details Drawer */}
@@ -561,6 +561,7 @@ export const VendorsPage: React.FC = () => {
         onReject={(v) => setRejectingVendor(v)}
         vendor={selectedDrawerVendor}
         initialOpenHoldForm={isDrawerHoldFormOpen}
+        onVendorUpdated={(v) => setSelectedDrawerVendor(v)}
       />
 
       {/* Owner Profile CRM Drawer */}

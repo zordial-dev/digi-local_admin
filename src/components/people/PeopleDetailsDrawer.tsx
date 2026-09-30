@@ -442,10 +442,10 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
 
               {/* Information Grid */}
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Mail size={16} className="text-[#C8A878] shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Email Address</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Email Address</span>
                     {isEditMode ? (
                       <input
                         type="email"
@@ -455,15 +455,15 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                         placeholder="Email address"
                       />
                     ) : (
-                      <span className="font-bold text-[#211A19] truncate block">{person.email}</span>
+                      <span className="font-bold text-[#211A19] truncate block">{person.email || 'N/A'}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Phone size={16} className="text-[#C8A878] shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Phone Number</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Phone Number</span>
                     {isEditMode ? (
                       <input
                         type="text"
@@ -473,15 +473,15 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                         placeholder="Phone number"
                       />
                     ) : (
-                      <span className="font-bold text-[#211A19]">{person.phone}</span>
+                      <span className="font-bold text-[#211A19]">{person.phone || 'N/A'}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Home size={16} className="text-[#C8A878] shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Society / Residence</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Society / Residence</span>
                     {isEditMode ? (
                       <input
                         type="text"
@@ -492,16 +492,16 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                       />
                     ) : (
                       <span className="font-bold text-[#211A19]">
-                        {person.flatNumber ? `${person.flatNumber}, ` : ''}{person.societyName}
+                        {(person.flatNumber ? `${person.flatNumber}, ` : '') + (person.societyName || '') || 'N/A'}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   {person.personType === 'vendor' || person.personType === 'user_vendor' ? <Store size={16} className="text-[#C8A878] shrink-0" /> : <User size={16} className="text-[#C8A878] shrink-0" />}
                   <div className="flex-1 min-w-0">
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Flat / Residence No.</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Flat / Residence No.</span>
                     {isEditMode ? (
                       <input
                         type="text"
@@ -517,10 +517,10 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                 </div>
 
                 {/* Complete Detailed Address Field */}
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-start gap-2.5 col-span-2">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-start gap-3.5 col-span-2">
                   <MapPin size={16} className="text-[#C8A878] shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Complete Residential Address</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Complete Residential Address</span>
                     {isEditMode ? (
                       <input
                         type="text"
@@ -531,16 +531,16 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                       />
                     ) : (
                       <span className="font-bold text-[#211A19] block text-xs leading-relaxed">
-                        {person.address || [person.flatNumber, person.societyName].filter(Boolean).join(', ') || 'N/A'}
+                        {person.address !== 'undefined' && person.address ? person.address : ([person.flatNumber, person.societyName].filter(Boolean).join(', ') || 'N/A')}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5 col-span-2">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5 col-span-2">
                   <Clock size={16} className="text-[#C8A878] shrink-0" />
                   <div>
-                    <span className="text-[#78716C] block text-[10px] uppercase font-bold">Registration Timestamp (Account Created)</span>
+                    <span className="text-[#78716C] block text-[10px] uppercase font-bold mb-1">Registration Timestamp (Account Created)</span>
                     <span className="font-bold text-[#211A19] font-mono">
                       {person.createdAtReadable || formatDateTime(person.createdAtIst || person.createdAt)}
                     </span>
@@ -635,7 +635,7 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                       leftIcon={<Pen size={14} className="text-[#C8A878]" />}
                       onClick={handleStartEdit}
                     >
-                      Edit User Details ✏️
+                      Edit User Details
                     </Button>
 
                     <Button
@@ -651,7 +651,7 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                     >
                       {(currentStrikesCount >= 3 || person.isBlocked)
                         ? 'Blocked (3/3 Strikes)'
-                        : `Issue Strike 🚩 (${currentStrikesCount}/3)`}
+                        : `Issue Strike (${currentStrikesCount}/3)`}
                     </Button>
 
                     <Button
@@ -661,7 +661,7 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                       onClick={() => setShowResetStrikePrompt(true)}
                       isLoading={resetStrikesMutation.isPending}
                     >
-                      Reset Strikes ⚡
+                      Reset Strikes
                     </Button>
 
                     <Button
@@ -671,7 +671,7 @@ export const PeopleDetailsDrawer: React.FC<PeopleDetailsDrawerProps> = ({
                       onClick={() => setShowBanPrompt(true)}
                       isLoading={updateStatusMutation.isPending}
                     >
-                      {person.status === 'banned' || person.status === 'blocked' || person.isBlocked ? 'Unban Account' : 'Ban Account ⛔'}
+                      {person.status === 'banned' || person.status === 'blocked' || person.isBlocked ? 'Unban Account' : 'Ban Account'}
                     </Button>
                   </>
                 )}

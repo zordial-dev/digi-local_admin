@@ -173,35 +173,35 @@ export const SubAdminDetailsDrawer: React.FC<SubAdminDetailsDrawerProps> = ({
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Mail size={16} className="text-[#C8A878] shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold">Email Address</span>
-                    <span className="font-mono font-bold text-[#211A19]">{subAdmin.email}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold mb-1">Email Address</span>
+                    <span className="font-mono font-bold text-[#211A19] block">{subAdmin.email}</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Calendar size={16} className="text-[#C8A878] shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold">Creation Date</span>
-                    <span className="font-mono font-bold text-[#211A19]">{formatDate(subAdmin.createdAt)}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold mb-1">Creation Date</span>
+                    <span className="font-mono font-bold text-[#211A19] block">{formatDate(subAdmin.createdAt)}</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <Key size={16} className="text-[#C8A878] shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold">Role Privilege Level</span>
-                    <span className="font-mono font-bold text-[#211A19]">Sub-Admin Account</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold mb-1">Role Privilege Level</span>
+                    <span className="font-mono font-bold text-[#211A19] block">Sub-Admin Account</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-2.5">
+                <div className="p-3 bg-[#FAF8F5] border border-[#E7DFD5] rounded-xl flex items-center gap-3.5">
                   <ShieldCheck size={16} className="text-[#C8A878] shrink-0" />
-                  <div>
-                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold">Account ID</span>
-                    <span className="font-mono font-bold text-[#211A19]">{subAdmin.id}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-[#78716C] font-mono block uppercase font-bold mb-1">Account ID</span>
+                    <span className="font-mono font-bold text-[#211A19] block">{subAdmin.id}</span>
                   </div>
                 </div>
               </div>

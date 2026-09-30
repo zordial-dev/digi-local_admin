@@ -62,6 +62,7 @@ export interface VendorDetailsDrawerProps {
   onReject?: (vendor: Vendor) => void;
   vendor?: Vendor | null;
   initialOpenHoldForm?: boolean;
+  onVendorUpdated?: (vendor: Vendor) => void;
 }
 
 export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
@@ -77,6 +78,7 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
   onReject,
   vendor,
   initialOpenHoldForm = false,
+  onVendorUpdated,
 }) => {
   const { addToast } = useToast();
   const { data: allTickets = [] } = useTickets();
@@ -342,10 +344,12 @@ export const VendorDetailsDrawer: React.FC<VendorDetailsDrawerProps> = ({
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (updatedVendor) => {
           setShowSaveConfirm(false);
           setIsEditMode(false);
-          onRefetch?.();
+          if (onVendorUpdated && updatedVendor) {
+            onVendorUpdated(updatedVendor);
+          }
           addToast({
             type: 'success',
             title: 'Vendor Details Updated',

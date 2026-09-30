@@ -19,6 +19,7 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   initialBatchSize?: number;
   batchStep?: number;
+  disableHorizontalScroll?: boolean;
 }
 
 export function DataTable<T>({
@@ -29,6 +30,7 @@ export function DataTable<T>({
   onRowClick,
   initialBatchSize = 8,
   batchStep = 6,
+  disableHorizontalScroll = false,
 }: DataTableProps<T>) {
   const [visibleCount, setVisibleCount] = useState(initialBatchSize);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -83,7 +85,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className="datatable-container">
+    <div className={`datatable-container ${disableHorizontalScroll ? 'no-horizontal-scroll' : ''}`}>
       <div className="datatable-scroll-area" onScroll={handleScroll}>
         <table className="datatable">
           <thead>

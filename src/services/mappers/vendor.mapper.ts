@@ -252,5 +252,10 @@ export const mapVendorDTOToDomain = (raw: any): Vendor => {
     updatedAt: raw.updated_at || raw.updatedAt || new Date().toISOString(),
   };
 
+  const editOverrides = getVendorEditOverrides();
+  if (editOverrides[String(vId)]) {
+    return { ...domainVendor, ...editOverrides[String(vId)] };
+  }
+
   return domainVendor;
 };
