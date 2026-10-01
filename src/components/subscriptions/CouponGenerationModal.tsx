@@ -52,7 +52,7 @@ export const CouponGenerationModal: React.FC<CouponGenerationModalProps> = ({ is
         response = {
           data: {
             success: true,
-            message: \8-digit coupon created successfully!\,
+            message: '8-digit coupon created successfully!',
             data: { coupon_code: couponCode || 'DIGI9X4K' }
           }
         };
@@ -63,7 +63,7 @@ export const CouponGenerationModal: React.FC<CouponGenerationModalProps> = ({ is
       addToast({
         type: 'success',
         title: 'Coupon Generated',
-        description: response.data?.message || \Coupon \ generated.\,
+        description: response.data?.message || 'Coupon generated.',
       });
     } catch (err) {
       addToast({
