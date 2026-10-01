@@ -30,7 +30,7 @@ class SubscriptionService extends BaseApiService {
         storeName: s.storeName,
         plan: (s.tier as any) || 'pro',
         billingCycle: 'annual',
-        price: s.price || 2999,
+        price: s.price || 5999,
         startDate: s.startDate,
         expiryDate: s.renewalDate,
         remainingDays: s.daysRemaining,
@@ -102,7 +102,7 @@ class SubscriptionService extends BaseApiService {
         storeName: found.storeName,
         plan: (found.tier as any) || 'pro',
         billingCycle: 'annual',
-        price: found.price || 2999,
+        price: found.price || 5999,
         startDate: found.startDate,
         expiryDate: found.renewalDate,
         remainingDays: found.daysRemaining,
@@ -121,7 +121,7 @@ class SubscriptionService extends BaseApiService {
     const list = await subscriptionsApi.getSubscriptions();
     const activeCount = list.filter((s) => s.status === 'active').length;
     const expiringSoonCount = list.filter((s) => s.daysRemaining <= 15 && s.daysRemaining > 0).length;
-    const totalMrr = list.reduce((acc, s) => acc + (s.price || 2999), 0);
+    const totalMrr = list.reduce((acc, s) => acc + (s.price || 5999), 0);
 
     const proCount = list.filter((s) => s.tier === 'pro').length;
     const enterpriseCount = list.filter((s) => s.tier === 'enterprise').length;
@@ -135,7 +135,7 @@ class SubscriptionService extends BaseApiService {
       mrrGrowthPercentage: 18.5,
       tierDistribution: [
         { name: 'Enterprise Tier', count: enterpriseCount, mrr: enterpriseCount * 9999, color: '#224636' },
-        { name: 'Pro Merchant', count: proCount, mrr: proCount * 2999, color: '#C8A878' },
+        { name: 'Pro Merchant', count: proCount, mrr: proCount * 5999, color: '#C8A878' },
         { name: 'Free Starter', count: freeCount, mrr: 0, color: '#827973' },
       ],
     } as any;

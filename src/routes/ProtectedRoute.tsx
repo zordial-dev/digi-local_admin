@@ -18,7 +18,7 @@ const getFallbackRoute = (hasPower: (p?: PowerSection | 'OVERVIEW' | 'USERS') =>
   if (hasPower('SUBSCRIPTIONS')) return '/dashboard/subscriptions';
   if (hasPower('SUPPORT')) return '/dashboard/support';
   if (hasPower('SETTINGS')) return '/dashboard/settings';
-  if (hasPower('OVERVIEW')) return '/dashboard/overview';
+  if (hasPower('OVERVIEW')) return '/dashboard';
   return '/auth/login';
 };
 

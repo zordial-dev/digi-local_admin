@@ -64,3 +64,29 @@ export const useChangePassword = () => {
     },
   });
 };
+
+export const useUpdateSubscriptionPrice = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (price: number) => configApi.updateSubscriptionPrice(price),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.config.main });
+      logBackendMutation('SETTINGS', 'UPDATE', 'Updated subscription plan price', 'Updated annual subscription fee.');
+      addToast({
+        type: 'success',
+        title: 'Price Updated',
+        description: data.message || 'Annual subscription fee updated successfully.',
+      });
+    },
+    onError: (error: unknown) => {
+      const appErr = ErrorHandler.handle(error);
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        description: appErr.message,
+      });
+    },
+  });
+};

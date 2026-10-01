@@ -11,7 +11,7 @@ export interface RouteMeta {
 
 export const ROUTES_CONFIG: Record<string, RouteMeta> = {
   OVERVIEW: {
-    path: '/dashboard/overview',
+    path: '/dashboard',
     title: 'Dashboard',
     breadcrumbLabel: 'Dashboard',
     requiresAuth: true,

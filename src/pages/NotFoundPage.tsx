@@ -57,7 +57,7 @@ export const NotFoundPage: React.FC = () => {
         >
           The page or endpoint route you requested does not exist on DigiLocal Admin.
         </p>
-        <Button leftIcon={<ArrowLeft size={16} />} onClick={() => navigate('/dashboard/overview')}>
+        <Button leftIcon={<ArrowLeft size={16} />} onClick={() => navigate('/dashboard')}>
           Return to Dashboard
         </Button>
       </div>

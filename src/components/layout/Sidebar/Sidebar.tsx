@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="sidebar-brand">
           <div
             className="brand-link"
-            onClick={() => navigate('/dashboard/overview')}
+            onClick={() => navigate('/dashboard')}
             title="Go to Dashboard"
           >
             <div className="brand-logo-container">

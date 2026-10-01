@@ -61,8 +61,9 @@ export const AppRoutes: React.FC = () => {
         {/* Protected Dashboard Shell Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<MainDashboardLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route element={<ProtectedRoute requiredPower="OVERVIEW" />}>
-              <Route path="dashboard/overview" element={<OverviewPage />} />
+              <Route path="dashboard" element={<OverviewPage />} />
             </Route>
 
             <Route element={<ProtectedRoute requiredPower="SOCIETIES" />}>
@@ -99,7 +100,7 @@ export const AppRoutes: React.FC = () => {
         </Route>
 
         {/* Fallback Catch-all Route */}
-        <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
   );

@@ -57,7 +57,7 @@ export const UnauthorizedPage: React.FC = () => {
         >
           You do not have the required enterprise administrator permissions to access this page.
         </p>
-        <Button leftIcon={<ArrowLeft size={16} />} onClick={() => navigate('/dashboard/overview')}>
+        <Button leftIcon={<ArrowLeft size={16} />} onClick={() => navigate('/dashboard')}>
           Back to Dashboard
         </Button>
       </div>

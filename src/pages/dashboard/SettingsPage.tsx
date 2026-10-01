@@ -3,10 +3,12 @@ import './SettingsPage.css';
 import { PageHeader } from '../../components/layout/PageHeader/PageHeader';
 import { BrandingSettingsCard } from '../../components/settings/BrandingSettingsCard';
 import { PasswordSettingsCard } from '../../components/settings/PasswordSettingsCard';
+import { SubscriptionSettingsCard } from '../../components/settings/SubscriptionSettingsCard';
 import {
   usePlatformConfig,
   useUpdatePlatformConfig,
   useChangePassword,
+  useUpdateSubscriptionPrice,
 } from '../../hooks/useConfig';
 import type {
   UpdateBrandingFormValues,
@@ -18,6 +20,7 @@ export const SettingsPage: React.FC = () => {
   const { data: config, isLoading: isLoadingConfig } = usePlatformConfig();
   const updateConfigMutation = useUpdatePlatformConfig();
   const changePasswordMutation = useChangePassword();
+  const updateSubscriptionPriceMutation = useUpdateSubscriptionPrice();
 
   const handleBrandingSubmit = (values: UpdateBrandingFormValues) => {
     updateConfigMutation.mutate(values);
@@ -28,6 +31,10 @@ export const SettingsPage: React.FC = () => {
       currentPassword: values.currentPassword,
       newPassword: values.newPassword,
     });
+  };
+
+  const handleSubscriptionPriceSubmit = (price: number) => {
+    updateSubscriptionPriceMutation.mutate(price);
   };
 
   return (
@@ -46,11 +53,18 @@ export const SettingsPage: React.FC = () => {
             <LoadingSkeleton width="100%" height={120} />
           </div>
         ) : (
-          <BrandingSettingsCard
-            config={config}
-            onSubmit={handleBrandingSubmit}
-            isLoading={updateConfigMutation.isPending}
-          />
+          <>
+            <BrandingSettingsCard
+              config={config}
+              onSubmit={handleBrandingSubmit}
+              isLoading={updateConfigMutation.isPending}
+            />
+            <SubscriptionSettingsCard
+              config={config}
+              onSubmit={handleSubscriptionPriceSubmit}
+              isLoading={updateSubscriptionPriceMutation.isPending}
+            />
+          </>
         )}
 
         <PasswordSettingsCard

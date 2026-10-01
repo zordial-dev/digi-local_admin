@@ -19,7 +19,7 @@ export const Breadcrumb: React.FC = () => {
     <nav className="breadcrumb-nav" aria-label="Breadcrumb">
       <ol className="breadcrumb-list">
         <li className="breadcrumb-item">
-          <Link to="/dashboard/overview" className="breadcrumb-link home-icon">
+          <Link to="/dashboard" className="breadcrumb-link home-icon">
             <Home size={14} />
           </Link>
         </li>

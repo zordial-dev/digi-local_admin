@@ -42,6 +42,8 @@ import {
 import { SubscriptionRenewalModal } from '../../components/subscriptions/SubscriptionRenewalModal';
 import { SubscriptionInvoiceModal } from '../../components/subscriptions/SubscriptionInvoiceModal';
 import { SubscriptionDetailsDrawer } from '../../components/subscriptions/SubscriptionDetailsDrawer';
+import { CouponGenerationModal } from '../../components/subscriptions/CouponGenerationModal';
+import { Ticket } from 'lucide-react';
 
 const TIER_COLORS = {
   free: '#78716C',
@@ -71,6 +73,7 @@ export const SubscriptionsPage: React.FC = () => {
   const [renewingSubscription, setRenewingSubscription] = useState<Subscription | null>(null);
   const [invoicingSubscription, setInvoicingSubscription] = useState<Subscription | null>(null);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
 
   const subscriptions = Array.isArray(rawSubscriptions) ? rawSubscriptions : [];
 
@@ -235,6 +238,11 @@ export const SubscriptionsPage: React.FC = () => {
       <PageHeader
         title="Subscriptions & Financials"
         description="Monitor active subscription plans, renewal countdown timers, and issue GST tax invoices."
+        action={
+          <Button variant="primary" leftIcon={<Ticket size={16} />} onClick={() => setIsCouponModalOpen(true)}>
+            Generate Coupon
+          </Button>
+        }
       />
 
       {/* Summary KPI Cards */}
@@ -362,6 +370,12 @@ export const SubscriptionsPage: React.FC = () => {
         onDownload={handleDownloadInvoice}
         subscription={invoicingSubscription}
         isLoading={downloadInvoiceMutation.isPending}
+      />
+
+      {/* Coupon Generation Modal */}
+      <CouponGenerationModal
+        isOpen={isCouponModalOpen}
+        onClose={() => setIsCouponModalOpen(false)}
       />
     </div>
   );

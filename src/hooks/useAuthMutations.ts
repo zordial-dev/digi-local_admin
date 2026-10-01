@@ -20,7 +20,7 @@ export const useAdminLoginMutation = () => {
         title: 'Authentication Successful',
         description: 'Welcome back to DigiLocal Enterprise Admin.',
       });
-      navigate('/dashboard/overview', { replace: true });
+      navigate('/dashboard', { replace: true });
     },
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);
@@ -48,7 +48,7 @@ export const useVendorLoginMutation = () => {
         title: 'Sign In Successful',
         description: 'Welcome back to your vendor portal.',
       });
-      navigate('/dashboard/overview', { replace: true });
+      navigate('/dashboard', { replace: true });
     },
     onError: (error: unknown) => {
       const appErr = ErrorHandler.handle(error);

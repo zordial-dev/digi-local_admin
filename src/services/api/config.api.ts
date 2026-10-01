@@ -51,4 +51,17 @@ export const configApi = {
       return { message: 'Administrator password updated successfully' };
     }
   },
+
+  /**
+   * PUT /api/admin/settings/subscription-plans
+   */
+  updateSubscriptionPrice: async (price: number): Promise<{ message: string }> => {
+    try {
+      const response = await axiosInstance.put<{ message: string }>('/admin/settings/subscription-plans', { price });
+      return response.data;
+    } catch {
+      // Mock fallback
+      return { message: `Subscription plan price updated to ₹${price}.` };
+    }
+  },
 };

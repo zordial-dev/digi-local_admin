@@ -14,7 +14,7 @@ export const MAIN_MENU_CONFIG: MenuItem[] = [
   {
     id: 'overview',
     label: 'Dashboard',
-    path: '/dashboard/overview',
+    path: '/dashboard',
     iconName: 'LayoutDashboard',
     requiredPower: 'OVERVIEW',
   },

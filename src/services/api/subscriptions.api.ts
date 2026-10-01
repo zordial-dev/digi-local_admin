@@ -36,7 +36,7 @@ const mapSubscriptionDTOToDomain = (raw: any): Subscription => {
     ownerName: raw.owner_name || raw.ownerName || raw.vendor_name || 'Vendor Owner',
     societyName: raw.society_name || raw.societyName || 'Greenwood Residency',
     tier,
-    price: Number(raw.price || raw.amount || (tier === 'enterprise' ? 9999 : 2999)),
+    price: Number(raw.price || raw.amount || (tier === 'enterprise' ? 9999 : 5999)),
     startDate: raw.start_date || raw.startDate || raw.created_at || '2026-01-01',
     renewalDate: renewal,
     daysRemaining,
@@ -136,7 +136,7 @@ export const subscriptionsApi = {
         vendorId: String(id),
         storeName: `Vendor #${id} Store`,
         gstin: '07AAAAA0000A1Z5',
-        amount: 2999,
+        amount: 5999,
         taxAmount: 539.82,
         issueDate: new Date().toISOString().split('T')[0],
       };
